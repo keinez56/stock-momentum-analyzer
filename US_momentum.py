@@ -260,32 +260,28 @@ def calculate_us_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
 
     return indicators
 
-def process_us_stock_data(input_file: str) -> pd.DataFrame:
+def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
     """處理美股數據並計算技術指標"""
     try:
-        # 讀取美股代碼檔案 - 使用正確的檔案名稱和C欄位置
-        data = pd.read_excel(input_file)
+        # 美股代碼列表 (硬編碼)
+        us_stocks = [
+            'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'CRWV', 'NBIS', 'APLD',
+            'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'AMZN', 'DELL', 'PLTR', 'SNOW', 'META',
+            'ZETA', 'VSAT', 'FIG', 'AI', 'TSLA', 'NTVS', 'NFLX', 'AAPL', 'QUBT', 'QBTS',
+            'RGTI', 'BMNR', 'HOOD', 'COIN', 'IONQ', 'CRCL', 'ONDS', 'RKLB', 'KTOS', 'UMAC',
+            'OPEN', 'SHOP', 'APP', 'SOUN', 'SPOT', 'LYFT', 'UPST', 'SOFI', 'AFRM', 'PGY',
+            'ROKU', 'RXRX', 'HIMS', 'LFMD', 'TWST', 'CELH', 'UNH', 'QS', 'SMR', 'OKLO',
+            'LEU', 'GEV', 'VST', 'GLD', 'VRSN', 'MP', 'RBLX', 'BABA', 'ARKK', 'VOO', 'QQQ', 'TSLY'
+        ]
 
-        # 從C欄讀取美股代碼（第3欄，索引為2）
-        if data.shape[1] >= 3:
-            tickers = data.iloc[:, 2]  # C欄（第3欄）
-            # 嘗試從其他欄位獲取股票名稱
-            if data.shape[1] >= 4:
-                names = data.iloc[:, 3]  # D欄如果有名稱
-            elif data.shape[1] >= 2:
-                names = data.iloc[:, 1]  # B欄如果有名稱
-            else:
-                names = tickers  # 如果沒有名稱欄位，使用代碼
-        else:
-            raise ValueError("Excel檔案格式不正確，請確認C欄包含美股代碼")
-
-        # 過濾掉空值和NaN
+        # 過濾掉空值和重複，並清理代碼
         valid_data = []
-        for i, ticker in enumerate(tickers):
-            if pd.notna(ticker) and str(ticker).strip():
+        for ticker in us_stocks:
+            if ticker and str(ticker).strip():
+                clean_ticker = str(ticker).strip().upper()
                 valid_data.append({
-                    'ticker': str(ticker).strip(),
-                    'name': str(names.iloc[i]).strip() if i < len(names) and pd.notna(names.iloc[i]) else str(ticker).strip()
+                    'ticker': clean_ticker,
+                    'name': clean_ticker  # 使用代碼作為名稱
                 })
 
         if not valid_data:

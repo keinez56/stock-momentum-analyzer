@@ -370,20 +370,42 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
 def prepare_stock_codes():
     """準備股票代碼"""
     try:
-        if not os.path.exists("2024-換股.xlsx"):
-            st.warning("⚠️ 本地檔案模式：2024-換股.xlsx 不存在，請使用自訂檔案上傳功能")
-            return None
+        # 台股代碼列表 (硬編碼)
+        taiwan_stocks = {
+            2330: "台灣積體電路製造",
+            2308: "台達電子工業",
+            3595: "山太士",
+            3708: "上緯國際投資",
+            2408: "南亞科技",
+            1504: "東元電機",
+            2317: "鴻海精密工業",
+            2383: "台光電子材料",
+            3665: "貿聯",
+            2382: "廣達電腦",
+            3231: "緯創資通",
+            3163: "波若威科技",
+            3363: "上詮光纖通信",
+            1802: "台灣玻璃工業",
+            1303: "南亞塑膠工業",
+            2359: "所羅門",
+            2328: "廣宇科技",
+            6188: "廣明光電",
+            2634: "漢翔航空工業",
+            8033: "雷虎科技",
+            2498: "宏達電",
+            8358: "金居開發"
+        }
 
-        data = pd.read_excel("2024-換股.xlsx")
-        tickers = data["股票代碼"]
-        name = data["股票名稱"]
+        # 建立DataFrame
+        tickers = list(taiwan_stocks.keys())
+        names = list(taiwan_stocks.values())
 
         # 應用分類函式
-        classified_codes = tickers.apply(classify_stock_code)
+        classified_codes = [classify_stock_code(ticker) for ticker in tickers]
 
         # 建立 DataFrame 並加上指數
         result_df = pd.DataFrame({
-            "股票名稱": name,
+            "股票名稱": names,
             "原始代碼": tickers,
             "YFinance代碼": classified_codes
         })
@@ -537,7 +559,7 @@ def generate_us_excel_file():
     try:
         # 處理美股數據
         with st.spinner("正在處理美股數據..."):
-            dframe = process_us_stock_data("2025-美股換股.xlsx")
+            dframe = process_us_stock_data()
 
         if dframe is not None and not dframe.empty:
             # 計算複合動能指標
