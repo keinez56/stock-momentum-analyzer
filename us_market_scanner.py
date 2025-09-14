@@ -18,29 +18,29 @@ def calculate_sma_trend(tickers, start_date, end_date):
     valid_tickers = []
     failed_tickers = []
 
-    with st.progress(0) as progress_bar:
-        for i, ticker in enumerate(tickers):
-            try:
-                progress_bar.progress((i + 1) / len(tickers))
+    progress_placeholder = st.empty()
+    for i, ticker in enumerate(tickers):
+        try:
+            progress_placeholder.progress((i + 1) / len(tickers), f"正在分析 {ticker} ({i+1}/{len(tickers)})")
 
-                # 下載數據
-                df = yf.download(ticker, start=start_date, end=end_date)
+            # 下載數據
+            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
-                if df.empty:
-                    st.warning(f"⚠️ {ticker} 沒有資料，跳過...")
-                    failed_tickers.append(ticker)
-                    continue
-
-                # 計算20天的SMA
-                ma20 = talib.SMA(df['Close'].to_numpy().reshape(-1), timeperiod=20)
-                res = np.where(df['Close'].to_numpy().reshape(-1) > ma20, 1, 0)
-                data.append(res)
-                valid_tickers.append(ticker)
-
-            except Exception as e:
-                st.warning(f"⚠️ {ticker} 下載失敗: {e}")
+            if df.empty:
                 failed_tickers.append(ticker)
                 continue
+
+            # 計算20天的SMA
+            ma20 = talib.SMA(df['Close'].to_numpy().reshape(-1), timeperiod=20)
+            res = np.where(df['Close'].to_numpy().reshape(-1) > ma20, 1, 0)
+            data.append(res)
+            valid_tickers.append(ticker)
+
+        except Exception as e:
+            failed_tickers.append(ticker)
+            continue
+
+    progress_placeholder.empty()
 
     if not data:
         return pd.Series(dtype='float64'), failed_tickers

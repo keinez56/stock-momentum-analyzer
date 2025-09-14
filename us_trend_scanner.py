@@ -26,7 +26,7 @@ def calculate_sector_trend(tickers, start_date, end_date, sector_name):
             progress_placeholder.progress((i + 1) / len(tickers), f"正在分析 {ticker} ({i+1}/{len(tickers)})")
 
             # 下載數據
-            df_ticker = yf.download(ticker, start=start_date, end=end_date)
+            df_ticker = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
             if df_ticker.empty:
                 failed_tickers.append(ticker)
