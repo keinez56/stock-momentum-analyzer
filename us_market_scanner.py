@@ -84,11 +84,11 @@ def main():
     # 參數設定
     col1, col2 = st.columns(2)
     with col1:
-        days = st.selectbox("📅 分析天數", [30, 60, 90, 120], index=1)
+        days = st.selectbox("📅 分析天數", [30, 60, 90, 120], index=1, key="us_market_days_select")
     with col2:
-        show_details = st.checkbox("📊 顯示詳細分析", value=True)
+        show_details = st.checkbox("📊 顯示詳細分析", value=True, key="us_market_details_check")
 
-    if st.button("🚀 開始分析", width='stretch'):
+    if st.button("🚀 開始分析", width='stretch', key="us_market_analysis_btn"):
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
 

@@ -97,11 +97,11 @@ def main():
     # 參數設定
     col1, col2 = st.columns(2)
     with col1:
-        analysis_days = st.selectbox("📅 分析期間", [200, 300, 400, 500], index=2)
+        analysis_days = st.selectbox("📅 分析期間", [200, 300, 400, 500], index=2, key="us_trend_days_select")
     with col2:
-        show_chart = st.checkbox("📊 顯示趨勢圖表", value=True)
+        show_chart = st.checkbox("📊 顯示趨勢圖表", value=True, key="us_trend_chart_check")
 
-    if st.button("🚀 開始分析", width='stretch'):
+    if st.button("🚀 開始分析", width='stretch', key="us_trend_analysis_btn"):
         end_date = date.today()
         start_date = end_date - timedelta(days=analysis_days)
 
