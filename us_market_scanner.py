@@ -191,12 +191,18 @@ def main():
             st.markdown("### 📊 分析結果")
 
             # 找出最短的資料長度來對齊
-            min_length = min([len(data) for data in results.values() if not data.empty])
+            valid_data = [len(data) for data in results.values() if not data.empty]
 
-            df_results = pd.DataFrame()
-            for name, data in results.items():
-                if not data.empty and len(data) >= min_length:
-                    df_results[name] = data.tail(min_length).values
+            if valid_data:  # 確保有有效數據
+                min_length = min(valid_data)
+
+                df_results = pd.DataFrame()
+                for name, data in results.items():
+                    if not data.empty and len(data) >= min_length:
+                        df_results[name] = data.tail(min_length).values
+            else:
+                df_results = pd.DataFrame()
+                st.warning("⚠️ 沒有成功獲取任何指數的資料")
 
             if not df_results.empty:
                 # 使用AAPL的日期作為索引

@@ -215,12 +215,20 @@ def main():
             st.markdown("### 📊 綜合分析結果")
 
             # 數據整理
-            min_length = min([len(data) for data in results.values() if not data.empty])
-            if min_length > 0:
+            valid_data = [len(data) for data in results.values() if not data.empty]
+
+            if valid_data:  # 確保有有效數據
+                min_length = min(valid_data)
+                if min_length > 0:
+                    df_results = pd.DataFrame()
+                    for sector_name, data in results.items():
+                        if not data.empty and len(data) >= min_length:
+                            df_results[sector_name] = data.tail(min_length).values
+                else:
+                    df_results = pd.DataFrame()
+            else:
                 df_results = pd.DataFrame()
-                for sector_name, data in results.items():
-                    if not data.empty and len(data) >= min_length:
-                        df_results[sector_name] = data.tail(min_length).values
+                st.warning("⚠️ 沒有成功獲取任何類股的資料")
 
                 if not df_results.empty:
                     # 添加日期索引
