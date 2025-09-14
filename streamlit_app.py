@@ -10,6 +10,8 @@ import os
 import time
 from io import BytesIO
 from US_momentum import process_us_stock_data, calculate_us_technical_indicators
+from us_trend_scanner import main as us_trend_scanner_main
+from us_market_scanner import main as us_market_scanner_main
 
 warnings.filterwarnings('ignore')
 
@@ -40,7 +42,7 @@ def login_page():
             username = st.text_input("👤 使用者名稱", placeholder="請輸入使用者名稱")
             password = st.text_input("🔑 密碼", type="password", placeholder="請輸入密碼")
 
-            login_button = st.form_submit_button("🚀 登入", use_container_width=True)
+            login_button = st.form_submit_button("🚀 登入", width='stretch')
 
             if login_button:
                 if username in USERS and USERS[username] == password:
@@ -374,7 +376,6 @@ def prepare_stock_codes():
         taiwan_stocks = {
             2330: "台灣積體電路製造",
             2308: "台達電子工業",
-            3595: "山太士",
             3708: "上緯國際投資",
             2408: "南亞科技",
             1504: "東元電機",
@@ -383,17 +384,13 @@ def prepare_stock_codes():
             3665: "貿聯",
             2382: "廣達電腦",
             3231: "緯創資通",
-            3163: "波若威科技",
-            3363: "上詮光纖通信",
             1802: "台灣玻璃工業",
             1303: "南亞塑膠工業",
             2359: "所羅門",
             2328: "廣宇科技",
-            6188: "廣明光電",
             2634: "漢翔航空工業",
             8033: "雷虎科技",
             2498: "宏達電",
-            8358: "金居開發"
         }
 
         # 建立DataFrame
@@ -749,7 +746,7 @@ def main():
     st.markdown('<div class="main-header">📊 股市動能分析系統</div>', unsafe_allow_html=True)
 
     # 創建分頁
-    tab1, tab2, tab3 = st.tabs(["🇹🇼 台股分析", "🇺🇸 美股分析", "📁 自訂檔案分析"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🇹🇼 台股分析", "🇺🇸 美股分析", "📁 自訂檔案分析", "🔍 美股趨勢掃描", "📊 美股大盤掃描"])
 
     # 側邊欄資訊
     with st.sidebar:
@@ -762,7 +759,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("🚪 登出", use_container_width=True):
+        if st.button("🚪 登出", width='stretch'):
             logout()
 
         st.markdown("---")
@@ -827,7 +824,7 @@ def main():
         # 生成台股報告按鈕
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🔄 生成最新台股動能分析報告", type="primary", use_container_width=True):
+            if st.button("🔄 生成最新台股動能分析報告", type="primary", width='stretch'):
                 with st.spinner("正在生成最新台股報告，請稍候..."):
                     filename, dframe = generate_excel_file()
 
@@ -883,12 +880,12 @@ def main():
                                 data=file.read(),
                                 file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True
+                                width='stretch'
                             )
 
                         # 顯示數據預覽
                         st.markdown("### 📊 數據預覽")
-                        st.dataframe(dframe.head(10), use_container_width=True)
+                        st.dataframe(dframe.head(10), width='stretch')
 
     # 美股分析頁面
     with tab2:
@@ -929,7 +926,7 @@ def main():
         # 生成美股報告按鈕
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🔄 生成最新美股動能分析報告", type="primary", use_container_width=True):
+            if st.button("🔄 生成最新美股動能分析報告", type="primary", width='stretch'):
                 filename, dframe = generate_us_excel_file()
 
                 if filename and dframe is not None:
@@ -980,12 +977,12 @@ def main():
                             data=file.read(),
                             file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
+                            width='stretch'
                         )
 
                     # 顯示數據預覽
                     st.markdown("### 📊 數據預覽")
-                    st.dataframe(dframe.head(10), use_container_width=True)
+                    st.dataframe(dframe.head(10), width='stretch')
 
     # 自訂檔案分析頁面
     with tab3:
@@ -1022,7 +1019,7 @@ def main():
                     # 預覽上傳檔案的內容
                     preview_data = pd.read_excel(uploaded_file)
                     st.markdown("#### 📋 檔案預覽")
-                    st.dataframe(preview_data.head(10), use_container_width=True)
+                    st.dataframe(preview_data.head(10), width='stretch')
 
                     # 顯示檔案資訊
                     st.markdown(f"**檔案名稱：** {uploaded_file.name}")
@@ -1064,7 +1061,7 @@ def main():
         if uploaded_file is not None:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                if st.button("🚀 開始分析自訂股票列表", type="primary", use_container_width=True):
+                if st.button("🚀 開始分析自訂股票列表", type="primary", width='stretch'):
 
                     # 創建進度條
                     progress_bar = st.progress(0)
@@ -1151,7 +1148,7 @@ def main():
                                 data=output.read(),
                                 file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True
+                                width='stretch'
                             )
                         except Exception as e:
                             st.error(f"❌ 生成下載檔案時發生錯誤: {e}")
@@ -1164,26 +1161,34 @@ def main():
                             uptrend_stocks = dframe[dframe['Short_Uptrend_Momentum'] == True]
                             if not uptrend_stocks.empty:
                                 st.markdown("#### 🚀 短線上漲動能強勁")
-                                st.dataframe(uptrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'Macdhist', 'Ma5', 'Ma20']], use_container_width=True)
+                                st.dataframe(uptrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'Macdhist', 'Ma5', 'Ma20']], width='stretch')
 
                         if 'Short_Downtrend_Signal' in dframe.columns:
                             downtrend_stocks = dframe[dframe['Short_Downtrend_Signal'] == True]
                             if not downtrend_stocks.empty:
                                 st.markdown("#### 📉 短線下跌訊號")
-                                st.dataframe(downtrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'K5', 'D5']], use_container_width=True)
+                                st.dataframe(downtrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'K5', 'D5']], width='stretch')
 
                         if 'Institutional_Selling' in dframe.columns:
                             inst_selling_stocks = dframe[dframe['Institutional_Selling'] == True]
                             if not inst_selling_stocks.empty:
                                 st.markdown("#### 🏛️ 機構出貨跡象")
-                                st.dataframe(inst_selling_stocks[['Ticker', 'Name', 'Close', 'Ma20', 'Decline_3Days']], use_container_width=True)
+                                st.dataframe(inst_selling_stocks[['Ticker', 'Name', 'Close', 'Ma20', 'Decline_3Days']], width='stretch')
 
                         # 完整數據預覽
                         st.markdown("### 📋 完整數據預覽")
-                        st.dataframe(dframe, use_container_width=True)
+                        st.dataframe(dframe, width='stretch')
 
                     else:
                         st.error("❌ 無法分析任何股票，請檢查檔案格式是否正確或股票代碼是否有效")
+
+    # 新增的美股趨勢掃描分頁
+    with tab4:
+        us_trend_scanner_main()
+
+    # 新增的美股大盤掃描分頁
+    with tab5:
+        us_market_scanner_main()
 
     # 頁腳
     st.markdown("---")

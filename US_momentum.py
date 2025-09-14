@@ -395,7 +395,7 @@ if __name__ == "__main__":
         else:
             print("❌ 沒有成功處理任何美股數據")
     except FileNotFoundError:
-        print(f"❌ 找不到輸入檔案: {input_file}")
-        print("請確認美股代碼檔案存在且名稱正確")
+        print("❌ 找不到相關檔案")
+        print("請確認所需檔案存在且名稱正確")
     except Exception as e:
         print(f"❌ 執行過程中發生錯誤: {e}")

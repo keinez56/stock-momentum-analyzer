@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(streamlit run:*)",
+      "Bash(copy streamlit_app_new.py streamlit_app.py)",
+      "Bash(python test:*)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(git --version)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(find:*)",
+      "Bash(del:*)",
+      "Bash(del __pycache__streamlit_app.cpython-39.pyc)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
