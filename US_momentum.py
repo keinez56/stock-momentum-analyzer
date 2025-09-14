@@ -285,9 +285,9 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                 })
 
         if not valid_data:
-            raise ValueError("在C欄中沒有找到有效的美股代碼")
+            raise ValueError("沒有找到有效的美股代碼")
 
-        print(f"從C欄讀取到 {len(valid_data)} 個美股代碼")
+        print(f"載入了 {len(valid_data)} 個美股代碼")
 
         today = date.today()
         start_day = today - timedelta(365)
@@ -367,11 +367,8 @@ if __name__ == "__main__":
     # 處理美股數據
     print("開始處理美股動能分析...")
 
-    # 檢查輸入檔案
-    input_file = "2025-美股換股.xlsx"  # 預設美股檔案名稱
-
     try:
-        dframe = process_us_stock_data(input_file)
+        dframe = process_us_stock_data()
 
         if not dframe.empty:
             print(f"成功處理 {len(dframe)} 支美股")

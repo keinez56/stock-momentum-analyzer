@@ -551,11 +551,6 @@ def generate_excel_file():
 
 def generate_us_excel_file():
     """生成美股 Excel 檔案"""
-    # 檢查美股代碼檔案
-    if not os.path.exists("2025-美股換股.xlsx"):
-        st.warning("⚠️ 本地檔案模式：2025-美股換股.xlsx 不存在，請使用自訂檔案上傳功能")
-        return None, None
-
     try:
         # 處理美股數據
         with st.spinner("正在處理美股數據..."):
@@ -906,8 +901,8 @@ def main():
             st.markdown("### 🚀 獲取最新美股動能分析報告")
             st.markdown("""
             <div class="info-box">
-            點擊下方按鈕開始生成最新的美股動能分析報告。系統將從 <strong>2025-美股換股.xlsx</strong>
-            的C欄讀取美股代碼，自動下載最新股價數據，計算各項技術指標，並生成 Excel 格式的分析報告供您下載。
+            點擊下方按鈕開始生成最新的美股動能分析報告。系統將分析內建的美股代碼列表，
+            自動下載最新股價數據，計算各項技術指標，並生成 Excel 格式的分析報告供您下載。
             </div>
             """, unsafe_allow_html=True)
 
