@@ -18,7 +18,9 @@ warnings.filterwarnings('ignore')
 # 帳號密碼設定
 USERS = {
     "admin": "admin123",
-    "vivian": "vivian123"
+    "vivian": "vivian123",
+    "bdc": "bdc123",
+    "lt": "lt123"
 }
 
 def check_login():
@@ -63,6 +65,14 @@ def login_page():
             **測試帳號 2:**
             - 使用者名稱: `vivian`
             - 密碼: `vivian123`
+
+            **測試帳號 3:**
+            - 使用者名稱: `bdc`
+            - 密碼: `bdc123`
+
+            **測試帳號 4:**
+            - 使用者名稱: `lt`
+            - 密碼: `lt123`
             """)
 
 def logout():
