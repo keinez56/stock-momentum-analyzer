@@ -67,39 +67,113 @@ def main():
 
     st.markdown("""
     ### 📋 功能說明
-    此工具分析標普500各行業股票相對於20日移動平均線的趨勢強度：
-    - 分析11個主要行業板塊的趨勢變化
-    - 計算每個行業中股票高於20日均線的百分比
+    此工具分析來自spx_index.xlsx的美股11大類股趨勢強度：
+    - 分析503支SPX成分股，按11大類股分類
+    - 計算各類股中股票高於20日均線的百分比
+    - 分析期間固定為60天
     - 提供歷史趨勢圖表和Excel報告下載
     """)
 
-    # 硬編碼各行業代表股票
+    # SPX 11大類股股票代碼 (來自spx_index.xlsx)
     sector_stocks = {
-        'XLC': ['GOOGL', 'META', 'DIS', 'CMCSA', 'VZ', 'T', 'NFLX', 'CRM'],  # 通訊
-        'XLY': ['AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'SBUX', 'TJX', 'LOW'],  # 非必需消費品
-        'XLP': ['PG', 'KO', 'PEP', 'WMT', 'COST', 'CL', 'KMB', 'GIS'],      # 必需消費品
-        'XLE': ['XOM', 'CVX', 'COP', 'EOG', 'SLB', 'MPC', 'PSX', 'VLO'],    # 能源
-        'XLF': ['BRK-B', 'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'AXP'],      # 金融
-        'XLV': ['UNH', 'JNJ', 'PFE', 'ABBV', 'TMO', 'ABT', 'DHR', 'MRK'],   # 醫療保健
-        'XLI': ['MMM', 'CAT', 'BA', 'GE', 'UPS', 'RTX', 'HON', 'UNP'],      # 工業
-        'XLB': ['LIN', 'APD', 'FCX', 'NUE', 'SHW', 'NEM', 'DOW', 'DD'],     # 原材料
-        'XLRE': ['PLD', 'AMT', 'CCI', 'EQIX', 'SPG', 'O', 'WELL', 'EXR'],   # 地產
-        'XLK': ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'ADBE', 'INTC', 'AMD'],  # 科技
-        'XLU': ['NEE', 'SO', 'DUK', 'AEP', 'SRE', 'D', 'PCG', 'EXC']        # 公用事業
+        'XLB': [  # 原材料 (26支股票)
+            'NEM', 'CF', 'BALL', 'MOS', 'AMCR', 'LIN', 'IFF', 'SHW', 'MLM', 'SW',
+            'VMC', 'NUE', 'ECL', 'AVY', 'APD', 'LYB', 'STLD', 'CTVA', 'PKG', 'DD',
+            'EMN', 'DOW', 'ALB', 'IP', 'PPG', 'FCX'
+        ],
+        'XLC': [  # 通訊服務 (23支股票)
+            'TMUS', 'T', 'VZ', 'LYV', 'NFLX', 'EA', 'MTCH', 'CMCSA', 'WBD', 'DIS',
+            'IPG', 'FOXA', 'OMC', 'CHTR', 'TTWO', 'FOX', 'META', 'PARA', 'NWS', 'GOOGL',
+            'TKO', 'GOOG', 'NWSA'
+        ],
+        'XLE': [  # 能源 (23支股票)
+            'APA', 'EXE', 'XOM', 'COP', 'OXY', 'SLB', 'CVX', 'WMB', 'KMI', 'BKR',
+            'HES', 'VLO', 'EQT', 'CTRA', 'HAL', 'PSX', 'TRGP', 'DVN', 'MPC', 'FANG',
+            'EOG', 'TPL', 'OKE'
+        ],
+        'XLF': [  # 金融 (73支股票)
+            'MMC', 'MKTX', 'FDS', 'V', 'WRB', 'MA', 'AJG', 'CBOE', 'ACGL', 'CB',
+            'L', 'BRO', 'PGR', 'CINF', 'AON', 'GL', 'WTW', 'FIS', 'EG', 'ICE',
+            'AFL', 'TROW', 'AIG', 'HIG', 'BRK-B', 'SPGI', 'TRV', 'ERIE', 'ALL', 'BLK',
+            'JKHY', 'BEN', 'MCO', 'CME', 'AIZ', 'GPN', 'CPAY', 'BAC', 'PFG', 'MSCI',
+            'SCHW', 'BK', 'NTRS', 'IVZ', 'HBAN', 'COF', 'STT', 'FITB', 'PRU', 'MET',
+            'PNC', 'FI', 'JPM', 'USB', 'AMP', 'RJF', 'TFC', 'MTB', 'RF', 'KEY',
+            'AXP', 'BX', 'NDAQ', 'PYPL', 'KKR', 'WFC', 'CFG', 'APO', 'SYF', 'C',
+            'DFS', 'GS', 'MS'
+        ],
+        'XLI': [  # 工業 (78支股票)
+            'VRSK', 'PAYC', 'ROL', 'NOC', 'PAYX', 'CPRT', 'ADP', 'EXPD', 'ODFL', 'UBER',
+            'EFX', 'RSG', 'FAST', 'CTAS', 'URI', 'HON', 'LHX', 'BA', 'OTIS', 'BR',
+            'VLTO', 'TXT', 'FDX', 'MAS', 'CSX', 'WM', 'NDSN', 'UPS', 'GD', 'DAY',
+            'HII', 'GWW', 'IR', 'ALLE', 'CHRW', 'NSC', 'LII', 'JBHT', 'WAB', 'J',
+            'IEX', 'ROK', 'LDOS', 'CAT', 'SNA', 'LMT', 'AOS', 'RTX', 'TDG', 'JCI',
+            'GE', 'BLDR', 'AME', 'FTV', 'DE', 'UNP', 'XYL', 'PNR', 'SWK', 'HWM',
+            'EMR', 'HUBB', 'LUV', 'PCAR', 'CMI', 'AXON', 'ITW', 'TT', 'ETN', 'DOV',
+            'PH', 'CARR', 'GNRC', 'PWR', 'MMM', 'DAL', 'GEV', 'UAL'
+        ],
+        'XLK': [  # 科技 (69支股票)
+            'VRSN', 'ROP', 'AAPL', 'ENPH', 'APH', 'DELL', 'INTC', 'MSI', 'FSLR', 'TYL',
+            'MPWR', 'MSFT', 'AKAM', 'JNPR', 'INTU', 'STX', 'GDDY', 'HPQ', 'QCOM', 'CDNS',
+            'CTSH', 'ANSS', 'TDY', 'ADBE', 'IT', 'ADSK', 'CSCO', 'GEN', 'ADI', 'FICO',
+            'KLAC', 'KEYS', 'HPE', 'SNPS', 'ACN', 'ZBRA', 'FFIV', 'MU', 'CRM', 'PTC',
+            'GLW', 'NOW', 'CRWD', 'ORCL', 'TRMB', 'FTNT', 'EPAM', 'IBM', 'WDC', 'LRCX',
+            'TEL', 'NTAP', 'SWKS', 'AMAT', 'TXN', 'NVDA', 'CDW', 'PLTR', 'WDAY', 'MCHP',
+            'TER', 'NXPI', 'ON', 'JBL', 'AMD', 'ANET', 'AVGO', 'PANW', 'SMCI'
+        ],
+        'XLP': [  # 必需消費品 (38支股票)
+            'DLTR', 'DG', 'BG', 'ADM', 'HRL', 'CAG', 'SJM', 'CHD', 'CLX', 'SYY',
+            'MDLZ', 'EL', 'MNST', 'TSN', 'KHC', 'PG', 'CL', 'HSY', 'CPB', 'KO',
+            'GIS', 'COST', 'MO', 'MKC', 'BF-B', 'PEP', 'KMB', 'TAP', 'KDP', 'WBA',
+            'WMT', 'PM', 'KVUE', 'TGT', 'LW', 'KR', 'STZ', 'K'
+        ],
+        'XLRE': [  # 房地產 (31支股票)
+            'AMT', 'CCI', 'SBAC', 'WY', 'MAA', 'INVH', 'PSA', 'WELL', 'VICI', 'CPT',
+            'EXR', 'CSGP', 'VTR', 'UDR', 'PLD', 'EQR', 'ARE', 'DOC', 'AVB', 'ESS',
+            'REG', 'EQIX', 'O', 'FRT', 'CBRE', 'BXP', 'KIM', 'SPG', 'IRM', 'HST',
+            'DLR'
+        ],
+        'XLU': [  # 公用事業 (31支股票)
+            'FE', 'AWK', 'AEP', 'D', 'PPL', 'SO', 'ES', 'XEL', 'EXC', 'ATO',
+            'DUK', 'NEE', 'LNT', 'ED', 'WEC', 'CNP', 'PNW', 'EVRG', 'ETR', 'CMS',
+            'AEE', 'DTE', 'AES', 'PCG', 'NI', 'EIX', 'SRE', 'PEG', 'NRG', 'CEG',
+            'VST'
+        ],
+        'XLV': [  # 醫療保健 (60支股票)
+            'ABT', 'MRNA', 'CAH', 'GILD', 'SOLV', 'HCA', 'HOLX', 'ZBH', 'ZTS', 'COO',
+            'IDXX', 'UHS', 'CI', 'BAX', 'TECH', 'COR', 'JNJ', 'MDT', 'GEHC', 'WAT',
+            'DVA', 'ABBV', 'CVS', 'STE', 'WST', 'VRTX', 'MCK', 'RMD', 'ELV', 'BDX',
+            'MTD', 'EW', 'AMGN', 'MOH', 'RVTY', 'HUM', 'SYK', 'CRL', 'DHR', 'ISRG',
+            'IQV', 'DGX', 'TMO', 'UNH', 'HSIC', 'CNC', 'BMY', 'MRK', 'LLY', 'REGN',
+            'LH', 'A', 'PFE', 'INCY', 'ALGN', 'VTRS', 'BIIB', 'BSX', 'PODD', 'DXCM'
+        ],
+        'XLY': [  # 非必需消費品 (51支股票)
+            'AZO', 'ORLY', 'KMX', 'EBAY', 'GPC', 'CMG', 'LULU', 'ROST', 'LKQ', 'DPZ',
+            'SBUX', 'TJX', 'DASH', 'DHI', 'TSCO', 'TSLA', 'WYNN', 'MHK', 'DRI', 'HD',
+            'AMZN', 'LEN', 'NKE', 'GRMN', 'BBY', 'LOW', 'LVS', 'NVR', 'PHM', 'HAS',
+            'BKNG', 'MCD', 'ULTA', 'WSM', 'YUM', 'CCL', 'POOL', 'MAR', 'DECK', 'RCL',
+            'HLT', 'TPR', 'RL', 'MGM', 'NCLH', 'CZR', 'ABNB', 'EXPE', 'F', 'APTV',
+            'GM'
+        ]
     }
 
-    # 對應中文名稱
+    # 產業中文名稱對照
     sector_names = {
-        'XLC': '通訊', 'XLY': '選消', 'XLP': '必消', 'XLE': '能源', 'XLF': '金融',
-        'XLV': '健康', 'XLI': '工業', 'XLB': '原材', 'XLRE': '地產', 'XLK': '科技', 'XLU': '公用'
+        'XLB': '原材料',
+        'XLC': '通訊服務',
+        'XLE': '能源',
+        'XLF': '金融',
+        'XLI': '工業',
+        'XLK': '科技',
+        'XLP': '必需消費品',
+        'XLRE': '房地產',
+        'XLU': '公用事業',
+        'XLV': '醫療保健',
+        'XLY': '非必需消費品'
     }
 
-    # 參數設定
-    col1, col2 = st.columns(2)
-    with col1:
-        analysis_days = st.selectbox("📅 分析期間", [200, 300, 400, 500], index=2, key="us_trend_days_select")
-    with col2:
-        show_chart = st.checkbox("📊 顯示趨勢圖表", value=True, key="us_trend_chart_check")
+    # 參數設定 - 固定60天
+    analysis_days = 60
+    show_chart = st.checkbox("📊 顯示趨勢圖表", value=True, key="us_trend_chart_check")
 
     if st.button("🚀 開始分析", width='stretch', key="us_trend_analysis_btn"):
         end_date = date.today()

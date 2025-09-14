@@ -66,27 +66,97 @@ def main():
 
     st.markdown("""
     ### 📋 功能說明
-    此工具分析主要美股指數成分股相對於20日移動平均線的趨勢強度：
-    - **SMH**: 費城半導體指數
-    - **QQQ**: 納斯達克100指數
-    - **DIA**: 道瓊工業指數
-    - **SPY**: 標普500指數
+    此工具分析來自index_memb.xlsx的四大美股指數相對於20日移動平均線的趨勢強度：
+    - **SMH**: 費城半導體指數 (30支股票)
+    - **QQQ**: 納斯達克100指數 (101支股票)
+    - **DIA**: 道瓊工業指數 (30支股票)
+    - **SPY**: 標普500指數 (504支股票)
+    - 分析期間固定為60天，總計665支股票
     """)
 
-    # 硬編碼主要指數成分股 (示例股票)
+    # INDEX_MEMB 四大指數股票代碼 (來自index_memb.xlsx)
     index_stocks = {
-        'SMH': ['NVDA', 'TSM', 'AVGO', 'AMD', 'INTC', 'MU', 'QCOM', 'TXN', 'ADI', 'MRVL'],
-        'QQQ': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NFLX', 'ADBE', 'CRM', 'ORCL'],
-        'DIA': ['UNH', 'GS', 'HD', 'MCD', 'CAT', 'AMGN', 'V', 'BA', 'TRV', 'AXP'],
-        'SPY': ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'BRK-B', 'TSLA', 'V', 'UNH', 'JNJ']
+        'SMH': [  # 費城半導體指數 (30支股票)
+            'INTC', 'MPWR', 'ENTG', 'CRUS', 'QCOM', 'ADI', 'KLAC', 'MU', 'QRVO', 'LRCX',
+            'GFS', 'SWKS', 'AMAT', 'TXN', 'NVDA', 'ARM', 'ASML', 'LSCC', 'MCHP', 'TER',
+            'NXPI', 'ON', 'MRVL', 'TSM', 'AMD', 'ONTO', 'MTSI', 'AVGO', 'COHR', 'AMKR'
+        ],
+        'QQQ': [  # 納斯達克100指數 (101支股票)
+            'ORLY', 'TMUS', 'MDLZ', 'GILD', 'ROP', 'VRSK', 'PDD', 'MNST', 'KHC', 'AEP',
+            'IDXX', 'LULU', 'PAYX', 'ROST', 'AAPL', 'CCEP', 'CPRT', 'MELI', 'ADP', 'COST',
+            'ODFL', 'SBUX', 'INTC', 'FAST', 'GEHC', 'CTAS', 'LIN', 'PEP', 'NFLX', 'DASH',
+            'KDP', 'XEL', 'EXC', 'HON', 'VRTX', 'TSLA', 'AZN', 'MSFT', 'AMZN', 'EA',
+            'INTU', 'CSX', 'AMGN', 'CMCSA', 'WBD', 'ISRG', 'BKNG', 'QCOM', 'CSGP', 'CDNS',
+            'CTSH', 'ANSS', 'ADBE', 'ADSK', 'CSCO', 'REGN', 'CHTR', 'TTWO', 'ADI', 'KLAC',
+            'SNPS', 'BKR', 'MAR', 'ZS', 'MU', 'CRWD', 'PCAR', 'META', 'MSTR', 'FTNT',
+            'BIIB', 'AXON', 'PYPL', 'GOOGL', 'LRCX', 'FANG', 'GOOG', 'GFS', 'AMAT', 'TXN',
+            'NVDA', 'CDW', 'ARM', 'ASML', 'ABNB', 'PLTR', 'WDAY', 'MDB', 'TTD', 'MCHP',
+            'NXPI', 'ON', 'MRVL', 'DDOG', 'TEAM', 'AMD', 'CEG', 'DXCM', 'AVGO', 'PANW',
+            'APP'
+        ],
+        'DIA': [  # 道瓊工業指數 (30支股票)
+            'VZ', 'V', 'PG', 'AAPL', 'KO', 'JNJ', 'WMT', 'HON', 'SHW', 'BA',
+            'HD', 'TRV', 'MSFT', 'AMZN', 'NKE', 'AMGN', 'MCD', 'DIS', 'UNH', 'CAT',
+            'MRK', 'CSCO', 'CVX', 'CRM', 'JPM', 'AXP', 'IBM', 'NVDA', 'GS', 'MMM'
+        ],
+        'SPY': [  # 標普500指數 (504支股票)
+            'DLTR', 'DG', 'BG', 'ADM', 'HRL', 'CAG', 'SJM', 'CHD', 'CLX', 'SYY',
+            'MDLZ', 'EL', 'MNST', 'TSN', 'KHC', 'PG', 'CL', 'HSY', 'CPB', 'KO',
+            'GIS', 'COST', 'MO', 'MKC', 'BF-B', 'PEP', 'KMB', 'TAP', 'KDP', 'WBA',
+            'WMT', 'PM', 'KVUE', 'TGT', 'LW', 'KR', 'STZ', 'K', 'ABT', 'MRNA',
+            'CAH', 'GILD', 'SOLV', 'HCA', 'HOLX', 'ZBH', 'ZTS', 'COO', 'IDXX', 'UHS',
+            'CI', 'BAX', 'TECH', 'COR', 'JNJ', 'MDT', 'GEHC', 'WAT', 'DVA', 'ABBV',
+            'CVS', 'STE', 'WST', 'VRTX', 'MCK', 'RMD', 'ELV', 'BDX', 'MTD', 'EW',
+            'AMGN', 'MOH', 'RVTY', 'HUM', 'SYK', 'CRL', 'DHR', 'ISRG', 'IQV', 'DGX',
+            'TMO', 'UNH', 'HSIC', 'CNC', 'BMY', 'MRK', 'LLY', 'REGN', 'LH', 'A',
+            'PFE', 'INCY', 'ALGN', 'VTRS', 'BIIB', 'BSX', 'PODD', 'DXCM', 'AZO', 'ORLY',
+            'KMX', 'EBAY', 'GPC', 'CMG', 'LULU', 'ROST', 'LKQ', 'DPZ', 'SBUX', 'TJX',
+            'DASH', 'DHI', 'TSCO', 'TSLA', 'WYNN', 'MHK', 'DRI', 'HD', 'AMZN', 'LEN',
+            'NKE', 'GRMN', 'BBY', 'LOW', 'LVS', 'NVR', 'PHM', 'HAS', 'BKNG', 'MCD',
+            'ULTA', 'WSM', 'YUM', 'CCL', 'POOL', 'MAR', 'DECK', 'RCL', 'HLT', 'TPR',
+            'RL', 'MGM', 'NCLH', 'CZR', 'ABNB', 'EXPE', 'F', 'APTV', 'GM', 'NEM',
+            'CF', 'BALL', 'MOS', 'AMCR', 'LIN', 'IFF', 'SHW', 'MLM', 'SW', 'VMC',
+            'NUE', 'ECL', 'AVY', 'APD', 'LYB', 'STLD', 'CTVA', 'PKG', 'DD', 'EMN',
+            'DOW', 'ALB', 'IP', 'PPG', 'FCX', 'FE', 'AWK', 'AEP', 'D', 'PPL',
+            'SO', 'ES', 'XEL', 'EXC', 'ATO', 'DUK', 'NEE', 'LNT', 'ED', 'WEC',
+            'CNP', 'PNW', 'EVRG', 'ETR', 'CMS', 'AEE', 'DTE', 'AES', 'PCG', 'NI',
+            'EIX', 'SRE', 'PEG', 'NRG', 'CEG', 'VST', 'MMC', 'MKTX', 'FDS', 'V',
+            'WRB', 'MA', 'AJG', 'CBOE', 'ACGL', 'CB', 'L', 'BRO', 'PGR', 'CINF',
+            'AON', 'GL', 'WTW', 'FIS', 'EG', 'ICE', 'AFL', 'TROW', 'AIG', 'HIG',
+            'BRK-B', 'SPGI', 'TRV', 'ERIE', 'ALL', 'BLK', 'JKHY', 'BEN', 'MCO', 'CME',
+            'AIZ', 'GPN', 'CPAY', 'BAC', 'PFG', 'MSCI', 'SCHW', 'BK', 'NTRS', 'IVZ',
+            'HBAN', 'COF', 'STT', 'FITB', 'PRU', 'MET', 'PNC', 'FI', 'JPM', 'USB',
+            'AMP', 'RJF', 'TFC', 'MTB', 'RF', 'KEY', 'AXP', 'BX', 'NDAQ', 'PYPL',
+            'KKR', 'WFC', 'CFG', 'APO', 'SYF', 'C', 'DFS', 'GS', 'MS', 'AMT',
+            'CCI', 'SBAC', 'WY', 'MAA', 'INVH', 'PSA', 'WELL', 'VICI', 'CPT', 'EXR',
+            'CSGP', 'VTR', 'UDR', 'PLD', 'EQR', 'ARE', 'DOC', 'AVB', 'ESS', 'REG',
+            'EQIX', 'O', 'FRT', 'CBRE', 'BXP', 'KIM', 'SPG', 'IRM', 'HST', 'DLR',
+            'VRSK', 'PAYC', 'ROL', 'NOC', 'PAYX', 'CPRT', 'ADP', 'EXPD', 'ODFL', 'UBER',
+            'EFX', 'RSG', 'FAST', 'CTAS', 'URI', 'HON', 'LHX', 'BA', 'OTIS', 'BR',
+            'VLTO', 'TXT', 'FDX', 'MAS', 'CSX', 'WM', 'NDSN', 'UPS', 'GD', 'DAY',
+            'HII', 'GWW', 'IR', 'ALLE', 'CHRW', 'NSC', 'LII', 'JBHT', 'WAB', 'J',
+            'IEX', 'ROK', 'LDOS', 'CAT', 'SNA', 'LMT', 'AOS', 'RTX', 'TDG', 'JCI',
+            'GE', 'BLDR', 'AME', 'FTV', 'DE', 'UNP', 'XYL', 'PNR', 'SWK', 'HWM',
+            'EMR', 'HUBB', 'LUV', 'PCAR', 'CMI', 'AXON', 'ITW', 'TT', 'ETN', 'DOV',
+            'PH', 'CARR', 'GNRC', 'PWR', 'MMM', 'DAL', 'GEV', 'UAL', 'VRSN', 'ROP',
+            'AAPL', 'ENPH', 'APH', 'DELL', 'INTC', 'MSI', 'FSLR', 'TYL', 'MPWR', 'MSFT',
+            'AKAM', 'JNPR', 'INTU', 'STX', 'GDDY', 'HPQ', 'QCOM', 'CDNS', 'CTSH', 'ANSS',
+            'TDY', 'ADBE', 'IT', 'ADSK', 'CSCO', 'GEN', 'ADI', 'FICO', 'KLAC', 'KEYS',
+            'HPE', 'SNPS', 'ACN', 'ZBRA', 'FFIV', 'MU', 'CRM', 'PTC', 'GLW', 'NOW',
+            'CRWD', 'ORCL', 'TRMB', 'FTNT', 'EPAM', 'IBM', 'WDC', 'LRCX', 'TEL', 'NTAP',
+            'SWKS', 'AMAT', 'TXN', 'NVDA', 'CDW', 'PLTR', 'WDAY', 'MCHP', 'TER', 'NXPI',
+            'ON', 'JBL', 'AMD', 'ANET', 'AVGO', 'PANW', 'SMCI', 'TMUS', 'T', 'VZ',
+            'LYV', 'NFLX', 'EA', 'MTCH', 'CMCSA', 'WBD', 'DIS', 'IPG', 'FOXA', 'OMC',
+            'CHTR', 'TTWO', 'FOX', 'META', 'PARA', 'NWS', 'GOOGL', 'TKO', 'GOOG', 'NWSA',
+            'APA', 'EXE', 'XOM', 'COP', 'OXY', 'SLB', 'CVX', 'WMB', 'KMI', 'BKR',
+            'HES', 'VLO', 'EQT', 'CTRA', 'HAL', 'PSX', 'TRGP', 'DVN', 'MPC', 'FANG',
+            'EOG', 'TPL', 'OKE', 'MRP-W'
+        ]
     }
 
-    # 參數設定
-    col1, col2 = st.columns(2)
-    with col1:
-        days = st.selectbox("📅 分析天數", [30, 60, 90, 120], index=1, key="us_market_days_select")
-    with col2:
-        show_details = st.checkbox("📊 顯示詳細分析", value=True, key="us_market_details_check")
+    # 參數設定 - 固定60天
+    days = 60
+    show_details = st.checkbox("📊 顯示詳細分析", value=True, key="us_market_details_check")
 
     if st.button("🚀 開始分析", width='stretch', key="us_market_analysis_btn"):
         end_date = date.today()
@@ -98,7 +168,7 @@ def main():
         all_failed_tickers = []
 
         # 分析各指數
-        groups_names = ['費城半導體', '納斯達克', '道瓊工業', '標普500']
+        groups_names = ['費城半導體指數', '納斯達克100指數', '道瓊工業指數', '標普500指數']
         index_keys = ['SMH', 'QQQ', 'DIA', 'SPY']
 
         for i, (key, name) in enumerate(zip(index_keys, groups_names)):
