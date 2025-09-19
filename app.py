@@ -37,12 +37,12 @@ except ImportError as e:
 
 warnings.filterwarnings('ignore')
 
-# 帳號密碼設定
+# 帳號密碼設定 - 使用環境變數提高安全性
 USERS = {
-    "admin": "admin123",
-    "vivian": "vivian123",
-    "bdc": "bdc123",
-    "lt": "lt123"
+    os.getenv('USER1_NAME', 'demo'): os.getenv('USER1_PASS', 'demo123'),
+    os.getenv('USER2_NAME', 'guest'): os.getenv('USER2_PASS', 'guest123'),
+    os.getenv('USER3_NAME', 'user'): os.getenv('USER3_PASS', 'user123'),
+    os.getenv('USER4_NAME', 'test'): os.getenv('USER4_PASS', 'test123')
 }
 
 def check_login():
