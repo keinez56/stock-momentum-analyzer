@@ -14,7 +14,12 @@
       "Bash(find:*)",
       "Bash(del:*)",
       "Bash(del __pycache__streamlit_app.cpython-39.pyc)",
-      "Bash(copy streamlit_app.py app.py)"
+      "Bash(copy streamlit_app.py app.py)",
+      "Bash(pip --version)",
+      "Bash(netstat:*)",
+      "Bash(tasklist)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "ask": []
