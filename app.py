@@ -9,10 +9,17 @@ import warnings
 import os
 import time
 from io import BytesIO
-from us_momentum import process_us_stock_data, calculate_us_technical_indicators
-from us_trend_scanner import main as us_trend_scanner_main
-from us_market_scanner import main as us_market_scanner_main
-from institutional_data import get_institutional_trading
+import sys
+sys.path.append('.')
+
+try:
+    from us_momentum import process_us_stock_data, calculate_us_technical_indicators
+    from us_trend_scanner import main as us_trend_scanner_main
+    from us_market_scanner import main as us_market_scanner_main
+    from institutional_data import get_institutional_trading
+except ImportError as e:
+    st.error(f"模組導入錯誤: {e}")
+    st.stop()
 
 warnings.filterwarnings('ignore')
 
