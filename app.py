@@ -9,9 +9,10 @@ import warnings
 import os
 import time
 from io import BytesIO
-from US_momentum import process_us_stock_data, calculate_us_technical_indicators
+from us_momentum import process_us_stock_data, calculate_us_technical_indicators
 from us_trend_scanner import main as us_trend_scanner_main
 from us_market_scanner import main as us_market_scanner_main
+from institutional_data import get_institutional_trading
 
 warnings.filterwarnings('ignore')
 
@@ -159,6 +160,45 @@ def classify_stock_code(stock_code: str) -> str:
     except Exception:
         pass
     return f"{stock_code}.TWO"
+
+def get_institutional_data(stock_code: str) -> Dict[str, float]:
+    """獲取股票的三大法人買賣超資料"""
+    try:
+        # 獲取最近5個交易日的資料
+        end_date = date.today()
+        start_date = end_date - timedelta(days=7)
+
+        # 轉換股票代碼格式（移除 .TW 或 .TWO 後綴）
+        clean_code = stock_code.replace('.TW', '').replace('.TWO', '')
+
+        df = get_institutional_trading(clean_code, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+
+        if df.empty:
+            return {
+                'foreign_net': 0,
+                'trust_net': 0,
+                'dealer_net': 0,
+                'total_net': 0
+            }
+
+        # 取最新一天的資料
+        latest_data = df.iloc[-1]
+
+        return {
+            'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
+            'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
+            'dealer_net': float(latest_data.get('自營商買賣超股數(自行買賣)', 0)) if pd.notna(latest_data.get('自營商買賣超股數(自行買賣)', 0)) else 0,
+            'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
+        }
+
+    except Exception as e:
+        print(f"獲取 {stock_code} 三大法人資料時發生錯誤: {e}")
+        return {
+            'foreign_net': 0,
+            'trust_net': 0,
+            'dealer_net': 0,
+            'total_net': 0
+        }
 
 def calculate_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
     """計算所有技術指標"""
@@ -463,6 +503,9 @@ def process_stock_data(progress_bar, status_text):
 
                 indicators = calculate_technical_indicators(df)
 
+                # 獲取三大法人買賣超資料
+                institutional_data = get_institutional_data(ticker)
+
                 if indicators:
                     result = {
                         'Ticker': ticker,
@@ -498,7 +541,12 @@ def process_stock_data(progress_bar, status_text):
                         'Decline_3Days': indicators.get('decline_3days', 0),
                         'Short_Uptrend_Momentum': indicators.get('short_uptrend_momentum', False),
                         'Short_Downtrend_Signal': indicators.get('short_downtrend_signal', False),
-                        'Institutional_Selling': indicators.get('institutional_selling', False)
+                        'Institutional_Selling': indicators.get('institutional_selling', False),
+                        # 新增三大法人買賣超欄位
+                        'Foreign_Net': institutional_data.get('foreign_net', 0),
+                        'Trust_Net': institutional_data.get('trust_net', 0),
+                        'Dealer_Net': institutional_data.get('dealer_net', 0),
+                        'Total_Net': institutional_data.get('total_net', 0)
                     }
                     results.append(result)
 
@@ -559,7 +607,7 @@ def generate_excel_file():
 def process_us_stock_data_with_progress(progress_bar, status_text):
     """處理美股數據並顯示進度條"""
     try:
-        # 美股代碼列表 (與 US_momentum.py 保持一致)
+        # 美股代碼列表 (與 us_momentum.py 保持一致)
         us_stocks = [
             'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'CRWV', 'NBIS', 'APLD',
             'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'AMZN', 'DELL', 'PLTR', 'SNOW', 'META',
@@ -591,7 +639,7 @@ def process_us_stock_data_with_progress(progress_bar, status_text):
                 if df.empty or len(df) < 60:
                     continue
 
-                # 使用 US_momentum 的計算函數
+                # 使用 us_momentum 的計算函數
                 indicators = calculate_us_technical_indicators(df)
 
                 if indicators:
@@ -788,6 +836,11 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 # 計算技術指標
                 indicators = calculate_technical_indicators(df)
 
+                # 獲取三大法人買賣超資料（僅對台股）
+                institutional_data = {'foreign_net': 0, 'trust_net': 0, 'dealer_net': 0, 'total_net': 0}
+                if '.TW' in ticker or '.TWO' in ticker or (ticker.isdigit() and len(ticker) == 4):
+                    institutional_data = get_institutional_data(ticker)
+
                 if indicators:
                     result = {
                         'Ticker': ticker,
@@ -823,7 +876,12 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                         'Decline_3Days': indicators.get('decline_3days', 0),
                         'Short_Uptrend_Momentum': indicators.get('short_uptrend_momentum', False),
                         'Short_Downtrend_Signal': indicators.get('short_downtrend_signal', False),
-                        'Institutional_Selling': indicators.get('institutional_selling', False)
+                        'Institutional_Selling': indicators.get('institutional_selling', False),
+                        # 新增三大法人買賣超欄位
+                        'Foreign_Net': institutional_data.get('foreign_net', 0),
+                        'Trust_Net': institutional_data.get('trust_net', 0),
+                        'Dealer_Net': institutional_data.get('dealer_net', 0),
+                        'Total_Net': institutional_data.get('total_net', 0)
                     }
                     results.append(result)
 

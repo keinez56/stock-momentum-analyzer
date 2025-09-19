@@ -13,7 +13,8 @@
       "Bash(git add:*)",
       "Bash(find:*)",
       "Bash(del:*)",
-      "Bash(del __pycache__streamlit_app.cpython-39.pyc)"
+      "Bash(del __pycache__streamlit_app.cpython-39.pyc)",
+      "Bash(copy streamlit_app.py app.py)"
     ],
     "deny": [],
     "ask": []
