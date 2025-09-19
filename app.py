@@ -37,13 +37,30 @@ except ImportError as e:
 
 warnings.filterwarnings('ignore')
 
-# 帳號密碼設定 - 使用環境變數提高安全性
-USERS = {
-    os.getenv('USER1_NAME', 'demo'): os.getenv('USER1_PASS', 'demo123'),
-    os.getenv('USER2_NAME', 'guest'): os.getenv('USER2_PASS', 'guest123'),
-    os.getenv('USER3_NAME', 'user'): os.getenv('USER3_PASS', 'user123'),
-    os.getenv('USER4_NAME', 'test'): os.getenv('USER4_PASS', 'test123')
-}
+# 帳號密碼設定 - 使用Streamlit secrets提高安全性
+def get_users():
+    """從Streamlit secrets或環境變數讀取使用者帳號密碼"""
+    try:
+        # 優先使用Streamlit secrets
+        if hasattr(st, 'secrets') and 'auth' in st.secrets:
+            return {
+                st.secrets["auth"]["USER1_NAME"]: st.secrets["auth"]["USER1_PASS"],
+                st.secrets["auth"]["USER2_NAME"]: st.secrets["auth"]["USER2_PASS"],
+                st.secrets["auth"]["USER3_NAME"]: st.secrets["auth"]["USER3_PASS"],
+                st.secrets["auth"]["USER4_NAME"]: st.secrets["auth"]["USER4_PASS"]
+            }
+    except (KeyError, AttributeError):
+        pass
+
+    # 回退到環境變數
+    return {
+        os.getenv('USER1_NAME', 'demo'): os.getenv('USER1_PASS', 'demo123'),
+        os.getenv('USER2_NAME', 'guest'): os.getenv('USER2_PASS', 'guest123'),
+        os.getenv('USER3_NAME', 'user'): os.getenv('USER3_PASS', 'user123'),
+        os.getenv('USER4_NAME', 'test'): os.getenv('USER4_PASS', 'test123')
+    }
+
+USERS = get_users()
 
 def check_login():
     """檢查登入狀態"""
