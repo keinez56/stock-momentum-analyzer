@@ -1,1 +1,5 @@
 build-essential
+wget
+libatlas-base-dev
+libfreetype6-dev
+pkg-config
