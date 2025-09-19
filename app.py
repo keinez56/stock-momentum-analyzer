@@ -16,13 +16,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 try:
-    import US_momentum
+    import us_momentum
     import us_trend_scanner
     import us_market_scanner
     import institutional_data
 
-    process_us_stock_data = US_momentum.process_us_stock_data
-    calculate_us_technical_indicators = US_momentum.calculate_us_technical_indicators
+    process_us_stock_data = us_momentum.process_us_stock_data
+    calculate_us_technical_indicators = us_momentum.calculate_us_technical_indicators
     us_trend_scanner_main = us_trend_scanner.main
     us_market_scanner_main = us_market_scanner.main
     get_institutional_trading = institutional_data.get_institutional_trading
@@ -671,88 +671,25 @@ def generate_excel_file():
 def process_us_stock_data_with_progress(progress_bar, status_text):
     """處理美股數據並顯示進度條"""
     try:
-        # 美股代碼列表 (與 us_momentum.py 保持一致)
-        us_stocks = [
-            'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'CRWV', 'NBIS', 'APLD',
-            'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'AMZN', 'DELL', 'PLTR', 'SNOW', 'META',
-            'ZETA', 'VSAT', 'FIG', 'AI', 'TSLA', 'NTVS', 'NFLX', 'AAPL', 'QUBT', 'QBTS',
-            'RGTI', 'BMNR', 'HOOD', 'COIN', 'IONQ', 'CRCL', 'ONDS', 'RKLB', 'KTOS', 'UMAC',
-            'OPEN', 'SHOP', 'APP', 'SOUN', 'SPOT', 'LYFT', 'UPST', 'SOFI', 'AFRM', 'PGY',
-            'ROKU', 'RXRX', 'HIMS', 'LFMD', 'TWST', 'CELH', 'UNH', 'QS', 'SMR', 'OKLO',
-            'LEU', 'GEV', 'VST', 'GLD', 'VRSN', 'MP', 'RBLX', 'BABA', 'ARKK', 'VOO', 'QQQ', 'TSLY'
-        ]
+        status_text.text("正在處理美股數據...")
+        progress_bar.progress(0.1)
 
-        today = date.today()
-        start_day = today - timedelta(365)
-        results = []
-        total_tickers = len(us_stocks)
+        # 直接使用 US_momentum.py 中的函數
+        dframe = process_us_stock_data()
 
-        for i, ticker in enumerate(us_stocks):
-            # 更新進度條
-            progress = (i + 1) / total_tickers
-            progress_bar.progress(progress)
-            status_text.text(f"正在處理美股 {ticker} ({i+1}/{total_tickers})")
+        if dframe is not None and not dframe.empty:
+            progress_bar.progress(1.0)
+            status_text.text(f"成功處理 {len(dframe)} 檔美股數據")
+            # 清除進度條
+            progress_bar.empty()
+            status_text.empty()
+            return dframe
+        else:
+            st.error("❌ US_momentum.process_us_stock_data 返回空數據")
+            progress_bar.empty()
+            status_text.empty()
+            return None
 
-            try:
-                ticker = str(ticker).strip().upper()
-                if not ticker:
-                    continue
-
-                df = yf.download(ticker, start=start_day, end=stock_end_date, auto_adjust=False, progress=False)
-
-                if df.empty or len(df) < 60:
-                    continue
-
-                # 使用 us_momentum 的計算函數
-                indicators = calculate_us_technical_indicators(df)
-
-                if indicators:
-                    result = {
-                        'Ticker': ticker,
-                        'Name': ticker,  # 使用代碼作為名稱
-                        'Close': indicators.get('close', np.nan),
-                        'Daily_return': indicators.get('day_return', np.nan),
-                        'Week_return': indicators.get('week_return', np.nan),
-                        'Month_return': indicators.get('month_return', np.nan),
-                        'HigherHigh': indicators.get('higher_high', False),
-                        'VolumnChange': indicators.get('volume_change', np.nan),
-                        'VC_30': indicators.get('vc_30', False),
-                        'RSI_5': indicators.get('rsi5', np.nan),
-                        'RSI_14': indicators.get('rsi14', np.nan),
-                        'Macd': indicators.get('macd', np.nan),
-                        'Macdsignal': indicators.get('macdsignal', np.nan),
-                        'Macdhist': indicators.get('macdhist', np.nan),
-                        'macdhist_signal': indicators.get('macdhist_signal', False),
-                        'Ma5': indicators.get('ma5', np.nan),
-                        'Ma20': indicators.get('ma20', np.nan),
-                        'Ma60': indicators.get('ma60', np.nan),
-                        'Crossover': indicators.get('crossover', False),
-                        'BBand': indicators.get('bband', False),
-                        'BBand_middleband': indicators.get('bband_middleband', False),
-                        'BBand_crossover': indicators.get('bband_crossover', False),
-                        'willr_D': indicators.get('willr_d', np.nan),
-                        'willr_D1': indicators.get('willr_d1', np.nan),
-                        'K5': indicators.get('k5', np.nan),
-                        'D5': indicators.get('d5', np.nan),
-                        'Volume_5MA': indicators.get('volume_5_mean', np.nan),
-                        'Volume_Above_5MA': indicators.get('volume_above_5ma', False),
-                        'Volume_20MA': indicators.get('volume_20_mean', np.nan),
-                        'Volume_Below_20MA': indicators.get('volume_below_20ma', False),
-                        'Decline_3Days': indicators.get('decline_3days', 0),
-                        'Short_Uptrend_Momentum': indicators.get('short_uptrend_momentum', False),
-                        'Short_Downtrend_Signal': indicators.get('short_downtrend_signal', False),
-                        'Institutional_Selling': indicators.get('institutional_selling', False)
-                    }
-                    results.append(result)
-
-            except Exception as e:
-                continue
-
-        # 清除進度條
-        progress_bar.empty()
-        status_text.empty()
-
-        return pd.DataFrame(results)
     except Exception as e:
         st.error(f"❌ 處理美股數據時發生錯誤: {e}")
         progress_bar.empty()
