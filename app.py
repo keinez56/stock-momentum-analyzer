@@ -16,13 +16,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 try:
-    import us_momentum
+    import US_momentum
     import us_trend_scanner
     import us_market_scanner
     import institutional_data
 
-    process_us_stock_data = us_momentum.process_us_stock_data
-    calculate_us_technical_indicators = us_momentum.calculate_us_technical_indicators
+    process_us_stock_data = US_momentum.process_us_stock_data
+    calculate_us_technical_indicators = US_momentum.calculate_us_technical_indicators
     us_trend_scanner_main = us_trend_scanner.main
     us_market_scanner_main = us_market_scanner.main
     get_institutional_trading = institutional_data.get_institutional_trading
