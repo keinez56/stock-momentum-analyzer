@@ -26,6 +26,7 @@ try:
     us_trend_scanner_main = us_trend_scanner.main
     us_market_scanner_main = us_market_scanner.main
     get_institutional_trading = institutional_data.get_institutional_trading
+    get_institutional_trading_batch = institutional_data.get_institutional_trading_batch
 
 except ImportError as e:
     st.error(f"模組導入錯誤: {e}")
@@ -506,6 +507,29 @@ def process_stock_data(progress_bar, status_text):
         results = []
         total_tickers = len(tickers)
 
+        # 批量下載三大法人資料
+        status_text.text("正在批量下載三大法人資料...")
+        progress_bar.progress(0.05)
+
+        # 準備台股代碼列表（移除 .TW/.TWO 後綴）
+        taiwan_stock_codes = []
+        for ticker in tickers:
+            clean_code = ticker.replace('.TW', '').replace('.TWO', '')
+            if clean_code.isdigit() and len(clean_code) == 4:
+                taiwan_stock_codes.append(clean_code)
+
+        # 批量下載今日的三大法人資料
+        institutional_batch_data = {}
+        if taiwan_stock_codes:
+            try:
+                from institutional_data import get_institutional_trading_batch
+                today_str = today.strftime('%Y%m%d')
+                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes, today_str)
+                status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
+            except Exception as e:
+                st.warning(f"批量下載三大法人資料失敗，將使用預設值: {e}")
+                institutional_batch_data = {}
+
         for i, ticker in enumerate(tickers):
             # 更新進度條
             progress = (i + 1) / total_tickers
@@ -523,8 +547,20 @@ def process_stock_data(progress_bar, status_text):
 
                 indicators = calculate_technical_indicators(df)
 
-                # 獲取三大法人買賣超資料
-                institutional_data = get_institutional_data(ticker)
+                # 獲取三大法人買賣超資料（從批量下載的資料中取得）
+                clean_code = ticker.replace('.TW', '').replace('.TWO', '')
+                institutional_data = {'foreign_net': 0, 'trust_net': 0, 'dealer_net': 0, 'total_net': 0}
+
+                if clean_code in institutional_batch_data:
+                    batch_data = institutional_batch_data[clean_code]
+                    if not batch_data.empty:
+                        latest_data = batch_data.iloc[-1]
+                        institutional_data = {
+                            'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
+                            'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
+                            'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                            'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
+                        }
 
                 if indicators:
                     result = {
@@ -800,6 +836,29 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
         results = []
         total_tickers = len(tickers)
 
+        # 批量下載三大法人資料
+        status_text.text("正在批量下載三大法人資料...")
+        progress_bar.progress(0.05)
+
+        # 準備台股代碼列表
+        taiwan_stock_codes = []
+        for ticker in tickers:
+            ticker_str = str(ticker).strip()
+            if ticker_str.isdigit() and len(ticker_str) == 4:
+                taiwan_stock_codes.append(ticker_str)
+
+        # 批量下載今日的三大法人資料
+        institutional_batch_data = {}
+        if taiwan_stock_codes:
+            try:
+                from institutional_data import get_institutional_trading_batch
+                today_str = today.strftime('%Y%m%d')
+                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes, today_str)
+                status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
+            except Exception as e:
+                st.warning(f"批量下載三大法人資料失敗，將使用預設值: {e}")
+                institutional_batch_data = {}
+
         for i, ticker in enumerate(tickers):
             # 更新進度條
             progress = (i + 1) / total_tickers
@@ -856,10 +915,31 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 # 計算技術指標
                 indicators = calculate_technical_indicators(df)
 
-                # 獲取三大法人買賣超資料（僅對台股）
+                # 獲取三大法人買賣超資料（從批量下載的資料中取得）
                 institutional_data = {'foreign_net': 0, 'trust_net': 0, 'dealer_net': 0, 'total_net': 0}
-                if '.TW' in ticker or '.TWO' in ticker or (ticker.isdigit() and len(ticker) == 4):
-                    institutional_data = get_institutional_data(ticker)
+                if '.TW' in ticker or '.TWO' in ticker:
+                    clean_code = ticker.replace('.TW', '').replace('.TWO', '')
+                    if clean_code in institutional_batch_data:
+                        batch_data = institutional_batch_data[clean_code]
+                        if not batch_data.empty:
+                            latest_data = batch_data.iloc[-1]
+                            institutional_data = {
+                                'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
+                                'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
+                                'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                                'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
+                            }
+                elif ticker.isdigit() and len(ticker) == 4:
+                    if ticker in institutional_batch_data:
+                        batch_data = institutional_batch_data[ticker]
+                        if not batch_data.empty:
+                            latest_data = batch_data.iloc[-1]
+                            institutional_data = {
+                                'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
+                                'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
+                                'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                                'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
+                            }
 
                 if indicators:
                     result = {
