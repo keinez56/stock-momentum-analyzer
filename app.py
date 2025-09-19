@@ -558,7 +558,7 @@ def process_stock_data(progress_bar, status_text):
                         institutional_data = {
                             'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
                             'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
-                            'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                            'dealer_net': float(latest_data.get('自營商買賣超股數(自行買賣)', 0)) if pd.notna(latest_data.get('自營商買賣超股數(自行買賣)', 0)) else 0,
                             'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
                         }
 
@@ -926,7 +926,7 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                             institutional_data = {
                                 'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
                                 'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
-                                'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                                'dealer_net': float(latest_data.get('自營商買賣超股數(自行買賣)', 0)) if pd.notna(latest_data.get('自營商買賣超股數(自行買賣)', 0)) else 0,
                                 'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
                             }
                 elif ticker.isdigit() and len(ticker) == 4:
@@ -937,7 +937,7 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                             institutional_data = {
                                 'foreign_net': float(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) if pd.notna(latest_data.get('外陸資買賣超股數(不含外資自營商)', 0)) else 0,
                                 'trust_net': float(latest_data.get('投信買賣超股數', 0)) if pd.notna(latest_data.get('投信買賣超股數', 0)) else 0,
-                                'dealer_net': float(latest_data.get('自營商買賣超股數', 0)) if pd.notna(latest_data.get('自營商買賣超股數', 0)) else 0,
+                                'dealer_net': float(latest_data.get('自營商買賣超股數(自行買賣)', 0)) if pd.notna(latest_data.get('自營商買賣超股數(自行買賣)', 0)) else 0,
                                 'total_net': float(latest_data.get('三大法人買賣超股數', 0)) if pd.notna(latest_data.get('三大法人買賣超股數', 0)) else 0
                             }
 
