@@ -507,7 +507,7 @@ def process_stock_data(progress_bar, status_text):
         results = []
         total_tickers = len(tickers)
 
-        # 批量下載三大法人資料
+        # 批量下載三大法人資料（使用智能日期選擇）
         status_text.text("正在批量下載三大法人資料...")
         progress_bar.progress(0.05)
 
@@ -518,17 +518,25 @@ def process_stock_data(progress_bar, status_text):
             if clean_code.isdigit() and len(clean_code) == 4:
                 taiwan_stock_codes.append(clean_code)
 
-        # 批量下載今日的三大法人資料
+        # 批量下載三大法人資料（使用智能日期選擇）
         institutional_batch_data = {}
         if taiwan_stock_codes:
             try:
-                from institutional_data import get_institutional_trading_batch
-                today_str = today.strftime('%Y%m%d')
-                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes, today_str)
+                from institutional_data import get_institutional_trading_batch, get_trading_date_for_stock_data
+                # 使用智能日期選擇，不指定特定日期
+                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes)
                 status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
+
+                # 同步調整股價資料的日期範圍
+                stock_end_date = get_trading_date_for_stock_data()
+                start_day = stock_end_date - timedelta(365)
+                status_text.text(f"股價資料期間: {start_day.strftime('%Y-%m-%d')} 至 {stock_end_date.strftime('%Y-%m-%d')}")
             except Exception as e:
                 st.warning(f"批量下載三大法人資料失敗，將使用預設值: {e}")
                 institutional_batch_data = {}
+                # 保持原來的日期範圍
+                stock_end_date = today
+                start_day = today - timedelta(365)
 
         for i, ticker in enumerate(tickers):
             # 更新進度條
@@ -537,7 +545,7 @@ def process_stock_data(progress_bar, status_text):
             status_text.text(f"正在處理 {ticker} ({i+1}/{total_tickers})")
 
             try:
-                df = yf.download(ticker, start=start_day, end=today, auto_adjust=False, progress=False)
+                df = yf.download(ticker, start=start_day, end=stock_end_date, auto_adjust=False, progress=False)
 
                 if df.empty:
                     continue
@@ -690,7 +698,7 @@ def process_us_stock_data_with_progress(progress_bar, status_text):
                 if not ticker:
                     continue
 
-                df = yf.download(ticker, start=start_day, end=today, auto_adjust=False, progress=False)
+                df = yf.download(ticker, start=start_day, end=stock_end_date, auto_adjust=False, progress=False)
 
                 if df.empty or len(df) < 60:
                     continue
@@ -836,7 +844,7 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
         results = []
         total_tickers = len(tickers)
 
-        # 批量下載三大法人資料
+        # 批量下載三大法人資料（使用智能日期選擇）
         status_text.text("正在批量下載三大法人資料...")
         progress_bar.progress(0.05)
 
@@ -847,17 +855,25 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
             if ticker_str.isdigit() and len(ticker_str) == 4:
                 taiwan_stock_codes.append(ticker_str)
 
-        # 批量下載今日的三大法人資料
+        # 批量下載三大法人資料（使用智能日期選擇）
         institutional_batch_data = {}
         if taiwan_stock_codes:
             try:
-                from institutional_data import get_institutional_trading_batch
-                today_str = today.strftime('%Y%m%d')
-                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes, today_str)
+                from institutional_data import get_institutional_trading_batch, get_trading_date_for_stock_data
+                # 使用智能日期選擇，不指定特定日期
+                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes)
                 status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
+
+                # 同步調整股價資料的日期範圍
+                stock_end_date = get_trading_date_for_stock_data()
+                start_day = stock_end_date - timedelta(365)
+                status_text.text(f"股價資料期間: {start_day.strftime('%Y-%m-%d')} 至 {stock_end_date.strftime('%Y-%m-%d')}")
             except Exception as e:
                 st.warning(f"批量下載三大法人資料失敗，將使用預設值: {e}")
                 institutional_batch_data = {}
+                # 保持原來的日期範圍
+                stock_end_date = today
+                start_day = today - timedelta(365)
 
         for i, ticker in enumerate(tickers):
             # 更新進度條
@@ -902,7 +918,7 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 df = None
                 for test_ticker in possible_tickers:
                     try:
-                        df = yf.download(test_ticker, start=start_day, end=today, auto_adjust=False, progress=False)
+                        df = yf.download(test_ticker, start=start_day, end=stock_end_date, auto_adjust=False, progress=False)
                         if not df.empty and len(df) >= 60:
                             ticker = test_ticker  # 使用成功的代碼
                             break

@@ -5,9 +5,67 @@ from datetime import datetime, timedelta
 import time
 import urllib3
 from typing import List, Dict
+import pytz
 
 # 忽略SSL警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def get_latest_trading_date_for_institutional_data() -> str:
+    """
+    獲取三大法人資料的最新可用交易日期
+
+    邏輯：
+    1. 如果現在是台灣時間下午6點後，使用今日（如果是交易日）
+    2. 如果是台灣時間下午6點前，使用前一個交易日
+    3. 自動跳過週末和假日
+
+    Returns:
+    str: 格式為 YYYYMMDD 的日期字串
+    """
+    # 設定台灣時區
+    taiwan_tz = pytz.timezone('Asia/Taipei')
+    now_taiwan = datetime.now(taiwan_tz)
+
+    print(f"目前台灣時間: {now_taiwan.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # 判斷是否已過下午6點（18:00）
+    cutoff_time = now_taiwan.replace(hour=18, minute=0, second=0, microsecond=0)
+
+    if now_taiwan >= cutoff_time and now_taiwan.weekday() < 5:  # 週一到週五且已過6點
+        # 使用今日
+        target_date = now_taiwan.date()
+        print(f"已過下午6點且為交易日，使用今日: {target_date}")
+    else:
+        # 使用前一個交易日
+        target_date = now_taiwan.date() - timedelta(days=1)
+        print(f"未過下午6點或非交易日，往前找交易日...")
+
+    # 往前找最近的交易日（跳過週末）
+    while target_date.weekday() >= 5:  # 5=Saturday, 6=Sunday
+        target_date -= timedelta(days=1)
+        print(f"跳過週末，調整為: {target_date}")
+
+    date_str = target_date.strftime('%Y%m%d')
+    print(f"最終使用日期: {date_str}")
+
+    return date_str
+
+def get_trading_date_for_stock_data() -> datetime:
+    """
+    獲取股價資料應該使用的日期（與三大法人資料對應）
+
+    Returns:
+    datetime: 股價資料的結束日期
+    """
+    institutional_date_str = get_latest_trading_date_for_institutional_data()
+    institutional_date = datetime.strptime(institutional_date_str, '%Y%m%d')
+
+    # 股價資料應該使用這個日期的下一個交易日
+    # 因為我們通常會取前N天的資料，結束日期需要包含目標日期
+    stock_end_date = institutional_date + timedelta(days=1)
+
+    print(f"股價資料結束日期: {stock_end_date.strftime('%Y-%m-%d')}")
+    return stock_end_date
 
 def get_all_institutional_data(date_str: str) -> pd.DataFrame:
     """
@@ -62,21 +120,45 @@ def get_all_institutional_data(date_str: str) -> pd.DataFrame:
         print(f"  下載 {date_str} 資料時發生錯誤: {e}")
         return pd.DataFrame()
 
-def get_institutional_trading_batch(stock_codes: List[str], date_str: str) -> Dict[str, pd.DataFrame]:
+def get_institutional_trading_batch(stock_codes: List[str], date_str: str = None) -> Dict[str, pd.DataFrame]:
     """
     批量取得多檔股票在指定日期的三大法人買賣超資料
 
     Parameters:
     stock_codes (List[str]): 股票代碼列表
-    date_str (str): 日期，格式 'YYYYMMDD' 或 'YYYY-MM-DD'
+    date_str (str, optional): 日期，格式 'YYYYMMDD' 或 'YYYY-MM-DD'。如果不提供，自動使用最新可用日期
 
     Returns:
     Dict[str, pd.DataFrame]: 以股票代碼為key的字典，值為該股票的三大法人資料
     """
+    # 如果沒有提供日期，使用智能日期選擇
+    if date_str is None:
+        date_str = get_latest_trading_date_for_institutional_data()
+        print(f"使用智能選擇的日期: {date_str}")
+
     # 一次下載全部資料
     all_data = get_all_institutional_data(date_str)
 
+    # 如果當日沒有資料，嘗試前一個交易日
     if all_data.empty:
+        print(f"日期 {date_str} 沒有資料，嘗試前一個交易日...")
+        try:
+            current_date = datetime.strptime(date_str, '%Y%m%d') if '-' not in date_str else datetime.strptime(date_str.replace('-', ''), '%Y%m%d')
+            # 往前找最近的交易日
+            for i in range(1, 8):  # 最多往前找7天
+                prev_date = current_date - timedelta(days=i)
+                if prev_date.weekday() < 5:  # 跳過週末
+                    prev_date_str = prev_date.strftime('%Y%m%d')
+                    print(f"嘗試日期: {prev_date_str}")
+                    all_data = get_all_institutional_data(prev_date_str)
+                    if not all_data.empty:
+                        print(f"成功取得 {prev_date_str} 的資料")
+                        break
+        except Exception as e:
+            print(f"日期轉換錯誤: {e}")
+
+    if all_data.empty:
+        print("警告: 無法取得任何三大法人資料")
         return {}
 
     result = {}
