@@ -37,69 +37,7 @@ except ImportError as e:
 
 warnings.filterwarnings('ignore')
 
-# 帳號密碼設定 - 使用Streamlit secrets提高安全性
-def get_users():
-    """從Streamlit secrets或環境變數讀取使用者帳號密碼"""
-    try:
-        # 優先使用Streamlit secrets
-        if hasattr(st, 'secrets') and 'auth' in st.secrets:
-            return {
-                st.secrets["auth"]["USER1_NAME"]: st.secrets["auth"]["USER1_PASS"],
-                st.secrets["auth"]["USER2_NAME"]: st.secrets["auth"]["USER2_PASS"],
-                st.secrets["auth"]["USER3_NAME"]: st.secrets["auth"]["USER3_PASS"],
-                st.secrets["auth"]["USER4_NAME"]: st.secrets["auth"]["USER4_PASS"]
-            }
-    except (KeyError, AttributeError):
-        pass
-
-    # 回退到環境變數
-    return {
-        os.getenv('USER1_NAME', 'demo'): os.getenv('USER1_PASS', 'demo123'),
-        os.getenv('USER2_NAME', 'guest'): os.getenv('USER2_PASS', 'guest123'),
-        os.getenv('USER3_NAME', 'user'): os.getenv('USER3_PASS', 'user123'),
-        os.getenv('USER4_NAME', 'test'): os.getenv('USER4_PASS', 'test123')
-    }
-
-USERS = get_users()
-
-def check_login():
-    """檢查登入狀態"""
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    if "username" not in st.session_state:
-        st.session_state.username = ""
-
-def login_page():
-    """登入頁面"""
-    st.markdown('<div class="main-header">🔐 股市動能分析系統 - 用戶登入</div>', unsafe_allow_html=True)
-
-    # 登入表單
-    col1, col2, col3 = st.columns([1, 2, 1])
-
-    with col2:
-        with st.form("login_form"):
-            st.markdown("### 📋 請輸入登入資訊")
-
-            username = st.text_input("👤 使用者名稱", placeholder="請輸入使用者名稱")
-            password = st.text_input("🔑 密碼", type="password", placeholder="請輸入密碼")
-
-            login_button = st.form_submit_button("🚀 登入", width='stretch')
-
-            if login_button:
-                if username in USERS and USERS[username] == password:
-                    st.session_state.logged_in = True
-                    st.session_state.username = username
-                    st.success("✅ 登入成功！")
-                    st.rerun()
-                else:
-                    st.error("❌ 帳號或密碼錯誤，請重新輸入！")
-
-
-def logout():
-    """登出功能"""
-    st.session_state.logged_in = False
-    st.session_state.username = ""
-    st.rerun()
+# 移除帳號密碼設定 - 開放所有使用者使用
 
 # 設置頁面配置
 st.set_page_config(
@@ -947,15 +885,7 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
 
 # Streamlit 主介面
 def main():
-    # 檢查登入狀態
-    check_login()
-
-    # 如果未登入，顯示登入頁面
-    if not st.session_state.logged_in:
-        login_page()
-        return
-
-    # 已登入，顯示主要內容
+    # 直接顯示主要內容，不需要登入驗證
     st.markdown('<div class="main-header">📊 股市動能分析系統</div>', unsafe_allow_html=True)
 
     # 創建分頁
@@ -963,19 +893,6 @@ def main():
 
     # 側邊欄資訊
     with st.sidebar:
-        # 用戶資訊和登出按鈕
-        st.markdown("### 👤 用戶資訊")
-        st.markdown(f"""
-        <div class="sidebar-info">
-        <strong>歡迎回來：</strong>{st.session_state.username}<br>
-        <strong>登入時間：</strong>{pd.Timestamp.now().strftime('%H:%M:%S')}
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("🚪 登出", width='stretch'):
-            logout()
-
-        st.markdown("---")
         st.markdown("### 📊 系統說明")
         st.markdown("""
         <div class="sidebar-info">
