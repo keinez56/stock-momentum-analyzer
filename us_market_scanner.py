@@ -86,7 +86,6 @@ def main():
     - **DIA**: 道瓊工業指數 (30支股票)
     - **SPY**: 標普500指數 (504支股票)
     - 顯示過去20個交易日的數據，最新日期在頂部
-    - 強勢(≥70%) 💚、中性(50-70%) 💙、弱勢(<50%) ❤️
     - 提供表格形式呈現和Excel報告下載
     """)
 
@@ -251,17 +250,8 @@ def main():
                     # 顯示表格（最新20個交易日，最新在上）
                     st.markdown("**📋 過去20個交易日趨勢強度 (最新在上)**")
 
-                    # 使用styler來美化表格
-                    def color_cells(val):
-                        if val >= 70:
-                            return 'background-color: #d4edda; color: #155724; font-weight: bold'
-                        elif val >= 50:
-                            return 'background-color: #d1ecf1; color: #0c5460'
-                        else:
-                            return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
-
-                    styled_df = df_display.style.applymap(color_cells, subset=df_display.columns)
-                    st.dataframe(styled_df, width='stretch', height=600)
+                    # 顯示乾淨的表格，不使用顏色編碼
+                    st.dataframe(df_display, width='stretch', height=600)
 
                     # 最新趨勢強度總覽
                     st.markdown("### 🎯 最新趨勢強度總覽")

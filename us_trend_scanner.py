@@ -9,6 +9,7 @@ from datetime import date, timedelta
 import warnings
 import talib
 from io import BytesIO
+from collections import OrderedDict
 
 warnings.filterwarnings('ignore')
 
@@ -81,10 +82,9 @@ def main():
     st.markdown("""
     ### 📋 功能說明
     此工具分析美股11大類股趨勢強度：
-    - 分析SPX成分股，按11大類股分類
+    - 分析SPX成分股，按11大類股分類（通訊、選消、必消、能源、金融、醫療、工業、材料、地產、資訊、公用）
     - 計算各類股中股票高於20日均線的百分比
     - 顯示過去20個交易日的數據，最新日期在頂部
-    - 強勢(≥70%) 💚、中性(50-70%) 💙、弱勢(<50%) ❤️
     - 提供表格形式呈現和Excel報告下載
     """)
 
@@ -170,20 +170,20 @@ def main():
         ]
     }
 
-    # 產業中文名稱對照
-    sector_names = {
-        'XLB': '原材料',
-        'XLC': '通訊服務',
-        'XLE': '能源',
-        'XLF': '金融',
-        'XLI': '工業',
-        'XLK': '科技',
-        'XLP': '必需消費品',
-        'XLRE': '房地產',
-        'XLU': '公用事業',
-        'XLV': '醫療保健',
-        'XLY': '非必需消費品'
-    }
+    # 產業中文名稱對照（按指定順序排列）
+    sector_names = OrderedDict([
+        ('XLC', '通訊'),
+        ('XLY', '選消'),
+        ('XLP', '必消'),
+        ('XLE', '能源'),
+        ('XLF', '金融'),
+        ('XLV', '醫療'),
+        ('XLI', '工業'),
+        ('XLB', '材料'),
+        ('XLRE', '地產'),
+        ('XLK', '資訊'),
+        ('XLU', '公用')
+    ])
 
     # 參數設定 - 固定60天（確保有足夠的20個交易日數據 + MA20計算需要的額外天數）
     analysis_days = 60
@@ -266,17 +266,8 @@ def main():
                     # 顯示表格（最新20個交易日，最新在上）
                     st.markdown("**📋 過去20個交易日趨勢強度 (最新在上)**")
 
-                    # 使用styler來美化表格
-                    def color_cells(val):
-                        if val >= 70:
-                            return 'background-color: #d4edda; color: #155724; font-weight: bold'
-                        elif val >= 50:
-                            return 'background-color: #d1ecf1; color: #0c5460'
-                        else:
-                            return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
-
-                    styled_df = df_display.style.applymap(color_cells, subset=df_display.columns)
-                    st.dataframe(styled_df, width='stretch', height=600)
+                    # 顯示乾淨的表格，不使用顏色編碼
+                    st.dataframe(df_display, width='stretch', height=600)
 
                     # 最新趨勢強度總覽
                     st.markdown("### 🎯 最新趨勢強度總覽")
