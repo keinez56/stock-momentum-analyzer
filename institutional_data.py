@@ -97,7 +97,7 @@ def get_all_institutional_data(date_str: str) -> pd.DataFrame:
                 # 將list轉為txt方便用csv讀取
                 df = pd.read_csv(io.StringIO(','.join(lines)))
                 # 將不必要的符號去除
-                df = df.map(lambda s: (str(s).replace('=', '').replace(',', '').replace('"', '')))
+                df = df.applymap(lambda s: (str(s).replace('=', '').replace(',', '').replace('"', '')))
 
                 # 添加日期欄位
                 formatted_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
@@ -139,13 +139,13 @@ def get_institutional_trading_batch(stock_codes: List[str], date_str: str = None
     # 一次下載全部資料
     all_data = get_all_institutional_data(date_str)
 
-    # 如果當日沒有資料，嘗試前一個交易日
+    # 如果當日沒有資料，嘗試前多個交易日
     if all_data.empty:
-        print(f"日期 {date_str} 沒有資料，嘗試前一個交易日...")
+        print(f"日期 {date_str} 沒有資料，嘗試前多個交易日...")
         try:
             current_date = datetime.strptime(date_str, '%Y%m%d') if '-' not in date_str else datetime.strptime(date_str.replace('-', ''), '%Y%m%d')
-            # 往前找最近的交易日
-            for i in range(1, 8):  # 最多往前找7天
+            # 往前找最近的交易日，擴展到15天
+            for i in range(1, 16):  # 最多往前找15天
                 prev_date = current_date - timedelta(days=i)
                 if prev_date.weekday() < 5:  # 跳過週末
                     prev_date_str = prev_date.strftime('%Y%m%d')
@@ -154,21 +154,26 @@ def get_institutional_trading_batch(stock_codes: List[str], date_str: str = None
                     if not all_data.empty:
                         print(f"成功取得 {prev_date_str} 的資料")
                         break
+                    # 增加延遲避免太頻繁請求
+                    time.sleep(0.5)
         except Exception as e:
             print(f"日期轉換錯誤: {e}")
 
     if all_data.empty:
-        print("警告: 無法取得任何三大法人資料")
+        print("警告: 無法取得任何三大法人資料，可能是非交易日或系統維護中")
         return {}
 
     result = {}
+    found_count = 0
     for stock_code in stock_codes:
         stock_data = all_data[all_data['證券代號'] == stock_code]
         if not stock_data.empty:
             result[stock_code] = stock_data.copy()
+            found_count += 1
         else:
             print(f"  找不到股票代碼 {stock_code} 的資料")
 
+    print(f"成功找到 {found_count}/{len(stock_codes)} 檔股票的三大法人資料")
     return result
 
 def get_institutional_trading(stock_code, start_date, end_date):
@@ -211,7 +216,7 @@ def get_institutional_trading(stock_code, start_date, end_date):
                         # 將list轉為txt方便用csv讀取
                         df = pd.read_csv(io.StringIO(','.join(lines)))
                         # 將不必要的符號去除
-                        df = df.map(lambda s:(str(s).replace('=','').replace(',','').replace('"','')))
+                        df = df.applymap(lambda s:(str(s).replace('=','').replace(',','').replace('"','')))
 
                         # 篩選指定股票代碼
                         if stock_code in df['證券代號'].values:

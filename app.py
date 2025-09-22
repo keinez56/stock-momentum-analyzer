@@ -459,16 +459,36 @@ def process_stock_data(progress_bar, status_text):
         if taiwan_stock_codes:
             try:
                 from institutional_data import get_institutional_trading_batch, get_trading_date_for_stock_data
-                # 使用智能日期選擇，不指定特定日期
-                institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes)
-                status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
 
-                # 同步調整股價資料的日期範圍
-                stock_end_date = get_trading_date_for_stock_data()
-                start_day = stock_end_date - timedelta(365)
-                status_text.text(f"股價資料期間: {start_day.strftime('%Y-%m-%d')} 至 {stock_end_date.strftime('%Y-%m-%d')}")
+                # 嘗試多個日期獲取資料
+                retry_count = 0
+                max_retries = 5
+                while retry_count < max_retries and not institutional_batch_data:
+                    try:
+                        # 使用智能日期選擇，不指定特定日期
+                        institutional_batch_data = get_institutional_trading_batch(taiwan_stock_codes)
+                        if institutional_batch_data:
+                            status_text.text(f"成功下載 {len(institutional_batch_data)} 檔股票的三大法人資料")
+                            break
+                        else:
+                            retry_count += 1
+                            status_text.text(f"嘗試取得三大法人資料 ({retry_count}/{max_retries})...")
+                    except Exception as retry_e:
+                        retry_count += 1
+                        status_text.text(f"重試 {retry_count}/{max_retries}: {str(retry_e)[:50]}...")
+
+                if institutional_batch_data:
+                    # 同步調整股價資料的日期範圍
+                    stock_end_date = get_trading_date_for_stock_data()
+                    start_day = stock_end_date - timedelta(365)
+                    status_text.text(f"股價資料期間: {start_day.strftime('%Y-%m-%d')} 至 {stock_end_date.strftime('%Y-%m-%d')}")
+                else:
+                    st.warning("⚠️ 無法取得三大法人資料，可能是非交易日或資料尚未公布")
+                    stock_end_date = today
+                    start_day = today - timedelta(365)
+
             except Exception as e:
-                st.warning(f"批量下載三大法人資料失敗，將使用預設值: {e}")
+                st.warning(f"批量下載三大法人資料失敗: {e}")
                 institutional_batch_data = {}
                 # 保持原來的日期範圍
                 stock_end_date = today

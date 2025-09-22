@@ -18,11 +18,8 @@ def calculate_sma_trend(tickers, start_date, end_date):
     valid_tickers = []
     failed_tickers = []
 
-    progress_placeholder = st.empty()
-    for i, ticker in enumerate(tickers):
+    for ticker in tickers:
         try:
-            progress_placeholder.progress((i + 1) / len(tickers), f"正在分析 {ticker} ({i+1}/{len(tickers)})")
-
             # 下載數據
             df = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
@@ -30,33 +27,50 @@ def calculate_sma_trend(tickers, start_date, end_date):
                 failed_tickers.append(ticker)
                 continue
 
-            # 計算20天的SMA
-            ma20 = talib.SMA(df['Close'].to_numpy().reshape(-1), timeperiod=20)
-            res = np.where(df['Close'].to_numpy().reshape(-1) > ma20, 1, 0)
-            data.append(res)
-            valid_tickers.append(ticker)
+            # 計算20日SMA
+            close_array = df['Close'].to_numpy().reshape(-1)
+            ma20 = talib.SMA(close_array, timeperiod=20)
+
+            # 只使用有效的MA20值（排除前20個NaN值）
+            valid_mask = ~np.isnan(ma20)
+            if valid_mask.sum() > 0:  # 確保有有效數據
+                # 只比較有MA20值的部分
+                close_valid = close_array[valid_mask]
+                ma20_valid = ma20[valid_mask]
+                res_valid = np.where(close_valid > ma20_valid, 1, 0)
+
+                # 補齊前面的0值（前20天沒有MA20數據）
+                res = np.zeros(len(close_array))
+                res[valid_mask] = res_valid
+
+                data.append(res)
+                valid_tickers.append(ticker)
+            else:
+                failed_tickers.append(ticker)
 
         except Exception as e:
             failed_tickers.append(ticker)
             continue
 
-    progress_placeholder.empty()
-
     if not data:
         return pd.Series(dtype='float64'), failed_tickers
 
-    # 找到數據中最大的長度並補齊
-    max_len = max([len(col) for col in data])
-    for i, col in enumerate(data):
-        if len(col) < max_len:
-            data[i] = np.pad(col, (max_len - len(col), 0), 'constant', constant_values=0)
+    # 數據對齊和計算
+    max_len = max(len(arr) for arr in data)
+    for i, arr in enumerate(data):
+        if len(arr) < max_len:
+            data[i] = np.pad(arr, (max_len - len(arr), 0), 'constant', constant_values=0)
 
-    # 創建DataFrame並計算百分比
     df_temp = pd.DataFrame()
-    for i, col_name in enumerate(valid_tickers):
-        df_temp[col_name] = data[i]
+    for i, ticker in enumerate(valid_tickers):
+        df_temp[ticker] = data[i]
 
-    row_sums = round(df_temp.sum(axis=1) / len(valid_tickers) * 100)
+    # 計算每日高於MA20的股票百分比
+    if len(valid_tickers) > 0:
+        row_sums = round(df_temp.sum(axis=1) / len(valid_tickers) * 100)
+    else:
+        row_sums = pd.Series(dtype='float64')
+
     return row_sums, failed_tickers
 
 def main():
@@ -66,12 +80,14 @@ def main():
 
     st.markdown("""
     ### 📋 功能說明
-    此工具分析來自index_memb.xlsx的四大美股指數相對於20日移動平均線的趨勢強度：
+    此工具分析四大美股指數相對於20日移動平均線的趨勢強度：
     - **SMH**: 費城半導體指數 (30支股票)
     - **QQQ**: 納斯達克100指數 (101支股票)
     - **DIA**: 道瓊工業指數 (30支股票)
     - **SPY**: 標普500指數 (504支股票)
-    - 分析期間固定為60天，總計665支股票
+    - 顯示過去20個交易日的數據，最新日期在頂部
+    - 強勢(≥70%) 💚、中性(50-70%) 💙、弱勢(<50%) ❤️
+    - 提供表格形式呈現和Excel報告下載
     """)
 
     # INDEX_MEMB 四大指數股票代碼 (來自index_memb.xlsx)
@@ -154,107 +170,165 @@ def main():
         ]
     }
 
-    # 參數設定 - 固定60天
-    days = 60
-    show_details = st.checkbox("📊 顯示詳細分析", value=True, key="us_market_details_check")
+    # 參數設定 - 固定60天（確保有足夠的20個交易日數據 + MA20計算需要的額外天數）
+    analysis_days = 60
 
-    if st.button("🚀 開始分析", width='stretch', key="us_market_analysis_btn"):
+    if st.button("🚀 開始分析美股4大指數趨勢", type="primary", width='stretch', key="us_market_analysis_btn"):
         end_date = date.today()
-        start_date = end_date - timedelta(days=days)
+        start_date = end_date - timedelta(days=analysis_days)
 
-        st.markdown("### 📈 分析進度")
+        # 創建進度條
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-        results = {}
-        all_failed_tickers = []
+        with st.spinner("正在分析美股4大指數趨勢，請稍候..."):
+            results = {}
+            all_failed_tickers = []
 
-        # 分析各指數
-        groups_names = ['費城半導體指數', '納斯達克100指數', '道瓊工業指數', '標普500指數']
-        index_keys = ['SMH', 'QQQ', 'DIA', 'SPY']
+            # 分析各指數
+            index_names = ['SMH-費城半導體', 'QQQ-納斯達克100', 'DIA-道瓊工業', 'SPY-標普500']
+            index_keys = ['SMH', 'QQQ', 'DIA', 'SPY']
+            total_indices = len(index_keys)
 
-        for i, (key, name) in enumerate(zip(index_keys, groups_names)):
-            with st.expander(f"正在分析 {name} ({key})", expanded=True):
+            for i, (key, display_name) in enumerate(zip(index_keys, index_names)):
+                # 更新進度
+                progress = (i + 1) / total_indices
+                progress_bar.progress(progress)
+                status_text.text(f"正在分析 {display_name} ({i+1}/{total_indices})")
+
                 tickers = index_stocks[key]
-                st.write(f"分析標的: {', '.join(tickers)}")
-
                 trend_data, failed = calculate_sma_trend(tickers, start_date, end_date)
-                results[name] = trend_data
+                results[display_name] = trend_data
                 all_failed_tickers.extend(failed)
 
-                if not trend_data.empty:
-                    latest_value = trend_data.iloc[-1] if len(trend_data) > 0 else 0
-                    st.metric(f"{name} 趨勢強度", f"{latest_value}%")
-                else:
-                    st.error(f"❌ {name} 無法取得資料")
+        # 清除進度條
+        progress_bar.empty()
+        status_text.empty()
 
         # 建立結果DataFrame
-        if results:
-            st.markdown("### 📊 分析結果")
+        if any(not data.empty for data in results.values()):
+            st.markdown("### 📊 美股4大指數趨勢強度表")
 
-            # 找出最短的資料長度來對齊
+            # 數據整理
             valid_data = [len(data) for data in results.values() if not data.empty]
 
-            if valid_data:  # 確保有有效數據
+            if valid_data:
                 min_length = min(valid_data)
+                if min_length > 0:
+                    df_results = pd.DataFrame()
+                    for index_name, data in results.items():
+                        if not data.empty and len(data) >= min_length:
+                            df_results[index_name] = data.tail(min_length).values
 
-                df_results = pd.DataFrame()
-                for name, data in results.items():
-                    if not data.empty and len(data) >= min_length:
-                        df_results[name] = data.tail(min_length).values
-            else:
-                df_results = pd.DataFrame()
-                st.warning("⚠️ 沒有成功獲取任何指數的資料")
+                    # 添加日期索引
+                    try:
+                        spy_data = yf.download('SPY', start=start_date, end=end_date, progress=False)
+                        if not spy_data.empty and len(spy_data) >= len(df_results):
+                            dates = spy_data.tail(len(df_results)).index.strftime('%Y-%m-%d')
+                            df_results.index = dates
+                    except:
+                        # 如果無法獲取SPY數據，使用日期範圍
+                        date_range = pd.date_range(end=end_date, periods=len(df_results), freq='B')
+                        df_results.index = date_range.strftime('%Y-%m-%d')
 
-            if not df_results.empty:
-                # 使用AAPL的日期作為索引
-                try:
-                    aapl_data = yf.download('AAPL', start=start_date, end=end_date)
-                    if not aapl_data.empty and len(aapl_data) >= len(df_results):
-                        df_results.index = aapl_data.tail(len(df_results)).index
-                except:
-                    pass
+                    # 只取最近20個交易日，最新在上
+                    df_display = df_results.tail(20).iloc[::-1]
 
-                # 最新日期在上
-                df_results = df_results.iloc[::-1]
+                    # 顯示統計資訊
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("分析指數數", len(df_display.columns))
+                    with col2:
+                        strong_indices = sum(1 for col in df_display.columns if df_display[col].iloc[0] >= 70)
+                        st.metric("強勢指數", strong_indices)
+                    with col3:
+                        weak_indices = sum(1 for col in df_display.columns if df_display[col].iloc[0] < 50)
+                        st.metric("弱勢指數", weak_indices)
+                    with col4:
+                        avg_strength = df_display.iloc[0].mean()
+                        st.metric("平均強度", f"{avg_strength:.1f}%")
 
-                # 顯示資料表
-                st.dataframe(df_results, width='stretch')
+                    # 顯示表格（最新20個交易日，最新在上）
+                    st.markdown("**📋 過去20個交易日趨勢強度 (最新在上)**")
 
-                # 趨勢強度總覽
-                st.markdown("### 🎯 最新趨勢強度")
-                cols = st.columns(len(df_results.columns))
-                for i, col_name in enumerate(df_results.columns):
-                    with cols[i]:
-                        latest_val = df_results[col_name].iloc[0] if len(df_results) > 0 else 0
-                        if latest_val >= 70:
-                            st.success(f"**{col_name}**\n{latest_val}% 💚")
-                        elif latest_val >= 50:
-                            st.info(f"**{col_name}**\n{latest_val}% 💙")
+                    # 使用styler來美化表格
+                    def color_cells(val):
+                        if val >= 70:
+                            return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                        elif val >= 50:
+                            return 'background-color: #d1ecf1; color: #0c5460'
                         else:
-                            st.error(f"**{col_name}**\n{latest_val}% ❤️")
+                            return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
 
-                # 提供下載
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df_results.to_excel(writer, sheet_name='大盤趨勢掃描')
+                    styled_df = df_display.style.applymap(color_cells, subset=df_display.columns)
+                    st.dataframe(styled_df, width='stretch', height=600)
 
-                st.download_button(
-                    label="📥 下載Excel報告",
-                    data=output.getvalue(),
-                    file_name=f"美股大盤趨勢掃描_{date.today().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width='stretch'
-                )
+                    # 最新趨勢強度總覽
+                    st.markdown("### 🎯 最新趨勢強度總覽")
+                    cols = st.columns(4)
+                    sorted_indices = df_display.iloc[0].sort_values(ascending=False)
 
-                if show_details:
-                    st.markdown("### 📈 趨勢圖表")
-                    st.line_chart(df_results)
+                    for i, (index_name, value) in enumerate(sorted_indices.items()):
+                        with cols[i % 4]:
+                            if value >= 70:
+                                st.success(f"**{index_name}**\n{value}% 💚 強勢")
+                            elif value >= 50:
+                                st.info(f"**{index_name}**\n{value}% 💙 中性")
+                            else:
+                                st.error(f"**{index_name}**\n{value}% ❤️ 弱勢")
 
-        # 錯誤報告
+                    # Excel下載
+                    output = BytesIO()
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        # 將數據寫入Excel，包含完整數據（不只20天）
+                        full_data = df_results.iloc[::-1]  # 最新在上
+                        full_data.to_excel(writer, sheet_name='美股4大指數趨勢')
+
+                        # 添加條件格式
+                        workbook = writer.book
+                        worksheet = writer.sheets['美股4大指數趨勢']
+
+                        # 設置標題格式
+                        title_format = workbook.add_format({
+                            'bold': True,
+                            'font_size': 12,
+                            'align': 'center',
+                            'valign': 'vcenter'
+                        })
+
+                        # 條件格式：3色階
+                        n_rows, n_cols = len(full_data), len(full_data.columns)
+                        if n_rows > 0 and n_cols > 0:
+                            cell_range = f'B2:{chr(66 + n_cols - 1)}{n_rows + 1}'
+                            worksheet.conditional_format(cell_range, {
+                                'type': '3_color_scale',
+                                'min_value': 0,
+                                'mid_value': 50,
+                                'max_value': 100,
+                                'min_color': '#FF6B6B',  # 紅色
+                                'mid_color': '#FFFFFF',  # 白色
+                                'max_color': '#51CF66'   # 綠色
+                            })
+
+                    output.seek(0)
+
+                    st.download_button(
+                        label="📥 下載美股大盤趨勢分析報告 (Excel)",
+                        data=output.read(),
+                        file_name=f"美股4大指數趨勢分析_{date.today().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        width='stretch'
+                    )
+
+                else:
+                    st.error("❌ 無法取得足夠的數據進行分析")
+            else:
+                st.error("❌ 沒有成功獲取任何指數的資料")
+
+        # 失敗股票報告（簡化顯示）
         if all_failed_tickers:
-            with st.expander("⚠️ 下載失敗的股票", expanded=False):
-                st.write("以下股票無法下載資料：")
-                for ticker in set(all_failed_tickers):
-                    st.write(f"- {ticker}")
+            failed_unique = list(set(all_failed_tickers))
+            st.info(f"ℹ️ 共有 {len(failed_unique)} 支股票無法獲取數據，但分析仍可正常進行")
 
 if __name__ == "__main__":
     main()
