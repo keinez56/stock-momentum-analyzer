@@ -5,13 +5,34 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import warnings
 import talib
 from io import BytesIO
 from collections import OrderedDict
+import pytz
 
 warnings.filterwarnings('ignore')
+
+def get_us_market_date() -> date:
+    """獲取美股市場的最新交易日期"""
+    # 使用美東時間
+    us_eastern = pytz.timezone('US/Eastern')
+    now_eastern = datetime.now(us_eastern)
+
+    print(f"目前美東時間: {now_eastern.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # 使用當前美東時間的日期
+    target_date = now_eastern.date()
+
+    # 如果是週末，往前調整到週五
+    if target_date.weekday() == 5:  # Saturday
+        target_date -= timedelta(days=1)
+    elif target_date.weekday() == 6:  # Sunday
+        target_date -= timedelta(days=2)
+
+    print(f"美股趨勢掃描使用日期: {target_date}")
+    return target_date
 
 def calculate_sector_trend(tickers, start_date, end_date, sector_name):
     """計算行業趨勢"""
@@ -189,7 +210,7 @@ def main():
     analysis_days = 60
 
     if st.button("🚀 開始分析美股11大類股趨勢", type="primary", width='stretch', key="us_trend_analysis_btn"):
-        end_date = date.today()
+        end_date = get_us_market_date()
         start_date = end_date - timedelta(days=analysis_days)
 
         # 創建進度條
@@ -321,7 +342,7 @@ def main():
                     st.download_button(
                         label="📥 下載美股趨勢分析報告 (Excel)",
                         data=output.read(),
-                        file_name=f"美股11大類股趨勢分析_{date.today().strftime('%Y%m%d')}.xlsx",
+                        file_name=f"美股11大類股趨勢分析_{get_us_market_date().strftime('%Y%m%d')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         width='stretch'
                     )

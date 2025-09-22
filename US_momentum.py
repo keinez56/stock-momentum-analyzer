@@ -260,6 +260,28 @@ def calculate_us_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
 
     return indicators
 
+def get_us_market_date() -> date:
+    """獲取美股市場的最新交易日期"""
+    import pytz
+
+    # 使用美東時間
+    us_eastern = pytz.timezone('US/Eastern')
+    now_eastern = datetime.now(us_eastern)
+
+    print(f"目前美東時間: {now_eastern.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # 使用當前美東時間的日期
+    target_date = now_eastern.date()
+
+    # 如果是週末，往前調整到週五
+    if target_date.weekday() == 5:  # Saturday
+        target_date -= timedelta(days=1)
+    elif target_date.weekday() == 6:  # Sunday
+        target_date -= timedelta(days=2)
+
+    print(f"美股數據使用日期: {target_date}")
+    return target_date
+
 def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
     """處理美股數據並計算技術指標"""
     try:
@@ -289,7 +311,8 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
 
         print(f"載入了 {len(valid_data)} 個美股代碼")
 
-        today = date.today()
+        # 使用美股市場時間確定日期範圍
+        today = get_us_market_date()
         start_day = today - timedelta(365)
 
         results = []
