@@ -33,7 +33,7 @@ def get_us_market_date() -> date:
     print(f"美股大盤掃描使用日期: {target_date}")
     return target_date
 
-def calculate_sma_trend(tickers, start_date, end_date):
+def calculate_sma_trend(tickers):
     """計算股票相對於20日均線的趨勢百分比"""
     data = []
     valid_tickers = []
@@ -41,8 +41,8 @@ def calculate_sma_trend(tickers, start_date, end_date):
 
     for ticker in tickers:
         try:
-            # 下載數據
-            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            # 使用period參數獲取最近3個月數據，讓yfinance自動確定最新日期
+            df = yf.download(ticker, period='3mo', progress=False)
 
             if df.empty:
                 failed_tickers.append(ticker)
@@ -190,12 +190,7 @@ def main():
         ]
     }
 
-    # 參數設定 - 固定60天（確保有足夠的20個交易日數據 + MA20計算需要的額外天數）
-    analysis_days = 60
-
     if st.button("🚀 開始分析美股4大指數趨勢", type="primary", width='stretch', key="us_market_analysis_btn"):
-        end_date = get_us_market_date()
-        start_date = end_date - timedelta(days=analysis_days)
 
         # 創建進度條
         progress_bar = st.progress(0)
@@ -217,7 +212,7 @@ def main():
                 status_text.text(f"正在分析 {display_name} ({i+1}/{total_indices})")
 
                 tickers = index_stocks[key]
-                trend_data, failed = calculate_sma_trend(tickers, start_date, end_date)
+                trend_data, failed = calculate_sma_trend(tickers)
                 results[display_name] = trend_data
                 all_failed_tickers.extend(failed)
 
@@ -242,13 +237,14 @@ def main():
 
                     # 添加日期索引
                     try:
-                        spy_data = yf.download('SPY', start=start_date, end=end_date, progress=False)
+                        spy_data = yf.download('SPY', period='3mo', progress=False)
                         if not spy_data.empty and len(spy_data) >= len(df_results):
                             dates = spy_data.tail(len(df_results)).index.strftime('%Y-%m-%d')
                             df_results.index = dates
                     except:
-                        # 如果無法獲取SPY數據，使用日期範圍
-                        date_range = pd.date_range(end=end_date, periods=len(df_results), freq='B')
+                        # 如果無法獲取SPY數據，使用今天往前推算
+                        from datetime import date
+                        date_range = pd.date_range(end=date.today(), periods=len(df_results), freq='B')
                         df_results.index = date_range.strftime('%Y-%m-%d')
 
                     # 只取最近20個交易日，最新在上

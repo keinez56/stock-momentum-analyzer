@@ -311,10 +311,6 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
 
         print(f"載入了 {len(valid_data)} 個美股代碼")
 
-        # 使用美股市場時間確定日期範圍
-        today = get_us_market_date()
-        start_day = today - timedelta(365)
-
         results = []
 
         for i, stock_data in enumerate(valid_data):
@@ -326,7 +322,8 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
             try:
                 # 驗證美股代碼
                 validated_ticker = validate_us_stock_code(ticker)
-                df = yf.download(validated_ticker, start=start_day, end=today, auto_adjust=False, progress=False)
+                # 使用period參數獲取最近一年數據，讓yfinance自動確定最新日期
+                df = yf.download(validated_ticker, period='1y', auto_adjust=False, progress=False)
 
                 if df.empty:
                     print(f"⚠️ {ticker} 無法獲取數據，跳過...")
