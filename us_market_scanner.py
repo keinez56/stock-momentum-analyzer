@@ -14,18 +14,29 @@ warnings.filterwarnings('ignore')
 
 def calculate_sma_trend(tickers):
     """計算股票相對於20日均線的趨勢百分比"""
-    data = []
-    valid_tickers = []
+    # 先獲取參考日期（使用SPY作為基準）
+    try:
+        reference_df = yf.download('SPY', period='3mo', progress=False)
+        if reference_df.empty:
+            return pd.Series(dtype='float64'), []
+        reference_dates = reference_df.index
+    except:
+        return pd.Series(dtype='float64'), []
+
+    data_dict = {}
     failed_tickers = []
 
     for ticker in tickers:
         try:
-            # 使用period參數獲取最近3個月數據，讓yfinance自動確定最新日期
+            # 使用period參數獲取最近3個月數據
             df = yf.download(ticker, period='3mo', progress=False)
 
             if df.empty:
                 failed_tickers.append(ticker)
                 continue
+
+            # 重新索引到參考日期，缺失值用前一個有效值填充
+            df = df.reindex(reference_dates, method='ffill')
 
             # 計算20日SMA
             close_array = df['Close'].to_numpy().reshape(-1)
@@ -43,8 +54,7 @@ def calculate_sma_trend(tickers):
                 res = np.zeros(len(close_array))
                 res[valid_mask] = res_valid
 
-                data.append(res)
-                valid_tickers.append(ticker)
+                data_dict[ticker] = res
             else:
                 failed_tickers.append(ticker)
 
@@ -52,22 +62,15 @@ def calculate_sma_trend(tickers):
             failed_tickers.append(ticker)
             continue
 
-    if not data:
+    if not data_dict:
         return pd.Series(dtype='float64'), failed_tickers
 
-    # 數據對齊和計算
-    max_len = max(len(arr) for arr in data)
-    for i, arr in enumerate(data):
-        if len(arr) < max_len:
-            data[i] = np.pad(arr, (max_len - len(arr), 0), 'constant', constant_values=0)
-
-    df_temp = pd.DataFrame()
-    for i, ticker in enumerate(valid_tickers):
-        df_temp[ticker] = data[i]
+    # 使用字典創建DataFrame，自動對齊
+    df_temp = pd.DataFrame(data_dict)
 
     # 計算每日高於MA20的股票百分比
-    if len(valid_tickers) > 0:
-        row_sums = round(df_temp.sum(axis=1) / len(valid_tickers) * 100)
+    if len(df_temp.columns) > 0:
+        row_sums = round(df_temp.sum(axis=1) / len(df_temp.columns) * 100)
     else:
         row_sums = pd.Series(dtype='float64')
 
