@@ -9,29 +9,8 @@ from datetime import date, timedelta, datetime
 import warnings
 import talib
 from io import BytesIO
-import pytz
 
 warnings.filterwarnings('ignore')
-
-def get_us_market_date() -> date:
-    """獲取美股市場的最新交易日期"""
-    # 使用美東時間
-    us_eastern = pytz.timezone('US/Eastern')
-    now_eastern = datetime.now(us_eastern)
-
-    print(f"目前美東時間: {now_eastern.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    # 使用當前美東時間的日期
-    target_date = now_eastern.date()
-
-    # 如果是週末，往前調整到週五
-    if target_date.weekday() == 5:  # Saturday
-        target_date -= timedelta(days=1)
-    elif target_date.weekday() == 6:  # Sunday
-        target_date -= timedelta(days=2)
-
-    print(f"美股大盤掃描使用日期: {target_date}")
-    return target_date
 
 def calculate_sma_trend(tickers):
     """計算股票相對於20日均線的趨勢百分比"""
@@ -236,16 +215,20 @@ def main():
                             df_results[index_name] = data.tail(min_length).values
 
                     # 添加日期索引
+                    latest_date = None
                     try:
                         spy_data = yf.download('SPY', period='3mo', progress=False)
                         if not spy_data.empty and len(spy_data) >= len(df_results):
                             dates = spy_data.tail(len(df_results)).index.strftime('%Y-%m-%d')
                             df_results.index = dates
+                            # 保存最新日期用於檔名
+                            latest_date = spy_data.tail(len(df_results)).index[-1].strftime('%Y%m%d')
                     except:
                         # 如果無法獲取SPY數據，使用今天往前推算
                         from datetime import date
                         date_range = pd.date_range(end=date.today(), periods=len(df_results), freq='B')
                         df_results.index = date_range.strftime('%Y-%m-%d')
+                        latest_date = date_range[-1].strftime('%Y%m%d')
 
                     # 只取最近20個交易日，最新在上
                     df_display = df_results.tail(20).iloc[::-1]
@@ -322,7 +305,7 @@ def main():
                     st.download_button(
                         label="📥 下載美股大盤趨勢分析報告 (Excel)",
                         data=output.read(),
-                        file_name=f"美股4大指數趨勢分析_{get_us_market_date().strftime('%Y%m%d')}.xlsx",
+                        file_name=f"美股4大指數趨勢分析_{latest_date}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         width='stretch'
                     )
