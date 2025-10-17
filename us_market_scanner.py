@@ -25,6 +25,7 @@ def calculate_sma_trend(tickers):
 
     data_dict = {}
     failed_tickers = []
+    expected_length = len(reference_dates)  # 記錄預期的數組長度
 
     for ticker in tickers:
         try:
@@ -37,6 +38,11 @@ def calculate_sma_trend(tickers):
 
             # 重新索引到參考日期，缺失值用前一個有效值填充
             df = df.reindex(reference_dates, method='ffill')
+
+            # 再次檢查長度是否匹配
+            if len(df) != expected_length:
+                failed_tickers.append(ticker)
+                continue
 
             # 計算20日SMA
             close_array = df['Close'].to_numpy().reshape(-1)
@@ -54,7 +60,11 @@ def calculate_sma_trend(tickers):
                 res = np.zeros(len(close_array))
                 res[valid_mask] = res_valid
 
-                data_dict[ticker] = res
+                # 確保長度正確
+                if len(res) == expected_length:
+                    data_dict[ticker] = res
+                else:
+                    failed_tickers.append(ticker)
             else:
                 failed_tickers.append(ticker)
 
@@ -65,8 +75,8 @@ def calculate_sma_trend(tickers):
     if not data_dict:
         return pd.Series(dtype='float64'), failed_tickers
 
-    # 使用字典創建DataFrame，自動對齊
-    df_temp = pd.DataFrame(data_dict)
+    # 使用字典創建DataFrame，所有數組現在都有相同的長度
+    df_temp = pd.DataFrame(data_dict, index=reference_dates)
 
     # 計算每日高於MA20的股票百分比
     if len(df_temp.columns) > 0:
