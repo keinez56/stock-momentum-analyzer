@@ -763,6 +763,8 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
 
         # 批量下載三大法人資料（使用智能日期選擇）
         institutional_batch_data = {}
+        stock_end_date = today  # 預設使用今天，避免變數未定義
+
         if taiwan_stock_codes:
             try:
                 from institutional_data import get_institutional_trading_batch, get_trading_date_for_stock_data
@@ -780,6 +782,10 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 # 保持原來的日期範圍
                 stock_end_date = today
                 start_day = today - timedelta(365)
+        else:
+            # 純美股或其他非台股列表，不需要三大法人資料
+            st.write("📊 檢測到非台股代碼列表，跳過三大法人資料下載")
+            stock_end_date = today
 
         for i, ticker in enumerate(tickers):
             # 更新進度條
