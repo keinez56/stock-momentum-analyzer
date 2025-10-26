@@ -702,11 +702,9 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
 
         # 自動識別股票代碼欄位
         ticker_column = None
-        name_column = None
 
         # 檢查各種可能的欄位名稱
         ticker_keywords = ['代碼', 'code', 'ticker', 'symbol', '股票代碼', 'stock_code', '證券代號', 'Ticker', 'Code', 'Symbol', '股票代码']
-        name_keywords = ['名稱', 'name', '股票名稱', 'stock_name', '證券名稱', 'Name', '公司名稱', 'company', '股票名称', '名称']
 
         # 尋找股票代碼欄位
         for col in data.columns:
@@ -717,30 +715,14 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
             if ticker_column:
                 break
 
-        # 尋找股票名稱欄位
-        for col in data.columns:
-            for keyword in name_keywords:
-                if keyword in str(col):
-                    name_column = col
-                    break
-
-        # 如果找不到特定欄位名，使用第一欄作為代碼，第二欄作為名稱
+        # 如果找不到特定欄位名，使用第一欄作為代碼
         if ticker_column is None:
             ticker_column = data.columns[0]
             st.write(f"⚠️ 未找到明確的代碼欄位，使用第一欄: {ticker_column}")
         else:
             st.write(f"✅ 識別到代碼欄位: {ticker_column}")
 
-        if name_column is None and len(data.columns) > 1:
-            name_column = data.columns[1]
-            st.write(f"⚠️ 未找到明確的名稱欄位，使用第二欄: {name_column}")
-        elif name_column:
-            st.write(f"✅ 識別到名稱欄位: {name_column}")
-        else:
-            st.write(f"⚠️ 只有一欄資料，將使用 'Unknown' 作為股票名稱")
-
         tickers = data[ticker_column].dropna()
-        names = data[name_column].dropna() if name_column else pd.Series(['Unknown'] * len(tickers))
 
         st.write(f"📊 找到 {len(tickers)} 個股票代碼")
 
@@ -880,7 +862,6 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 if indicators:
                     result = {
                         'Ticker': ticker,
-                        'Name': names.iloc[i] if i < len(names) else 'Unknown',
                         'Close': indicators.get('close', np.nan),
                         'Daily_return': indicators.get('day_return', np.nan),
                         'Week_return': indicators.get('week_return', np.nan),
@@ -928,13 +909,13 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 continue
 
         st.write(f"✅ 成功處理 {len(results)} 檔股票")
-        return pd.DataFrame(results), ticker_column, name_column
+        return pd.DataFrame(results), ticker_column
 
     except Exception as e:
         st.error(f"❌ 處理上傳檔案時發生錯誤: {e}")
         import traceback
         st.error(f"詳細錯誤: {traceback.format_exc()}")
-        return None, None, None
+        return None, None
 
 # Streamlit 主介面
 def main():
@@ -1255,7 +1236,7 @@ def main():
                         uploaded_file.seek(0)
 
                         # 處理自訂檔案
-                        dframe, ticker_col, name_col = process_custom_file(uploaded_file, progress_bar, status_text)
+                        dframe, ticker_col = process_custom_file(uploaded_file, progress_bar, status_text)
 
                     # 清除進度條
                     progress_bar.empty()
@@ -1280,8 +1261,7 @@ def main():
                         st.markdown(f"""
                         <div class="success-box">
                         ✅ <strong>自訂股票分析完成！</strong><br>
-                        成功識別代碼欄位：<strong>{ticker_col}</strong><br>
-                        成功識別名稱欄位：<strong>{name_col if name_col else '未找到'}</strong>
+                        成功識別代碼欄位：<strong>{ticker_col}</strong>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1344,19 +1324,19 @@ def main():
                             uptrend_stocks = dframe[dframe['Short_Uptrend_Momentum'] == True]
                             if not uptrend_stocks.empty:
                                 st.markdown("#### 🚀 短線上漲動能強勁")
-                                st.dataframe(uptrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'Macdhist', 'Ma5', 'Ma20']], width='stretch')
+                                st.dataframe(uptrend_stocks[['Ticker', 'Close', 'RSI_14', 'Macdhist', 'Ma5', 'Ma20']], width='stretch')
 
                         if 'Short_Downtrend_Signal' in dframe.columns:
                             downtrend_stocks = dframe[dframe['Short_Downtrend_Signal'] == True]
                             if not downtrend_stocks.empty:
                                 st.markdown("#### 📉 短線下跌訊號")
-                                st.dataframe(downtrend_stocks[['Ticker', 'Name', 'Close', 'RSI_14', 'K5', 'D5']], width='stretch')
+                                st.dataframe(downtrend_stocks[['Ticker', 'Close', 'RSI_14', 'K5', 'D5']], width='stretch')
 
                         if 'Institutional_Selling' in dframe.columns:
                             inst_selling_stocks = dframe[dframe['Institutional_Selling'] == True]
                             if not inst_selling_stocks.empty:
                                 st.markdown("#### 🏛️ 機構出貨跡象")
-                                st.dataframe(inst_selling_stocks[['Ticker', 'Name', 'Close', 'Ma20', 'Decline_3Days']], width='stretch')
+                                st.dataframe(inst_selling_stocks[['Ticker', 'Close', 'Ma20', 'Decline_3Days']], width='stretch')
 
                         # 完整數據預覽
                         st.markdown("### 📋 完整數據預覽")
