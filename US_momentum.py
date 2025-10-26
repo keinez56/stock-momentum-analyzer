@@ -300,10 +300,7 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
         for ticker in us_stocks:
             if ticker and str(ticker).strip():
                 clean_ticker = str(ticker).strip().upper()
-                valid_data.append({
-                    'ticker': clean_ticker,
-                    'name': clean_ticker  # 使用代碼作為名稱
-                })
+                valid_data.append(clean_ticker)
 
         if not valid_data:
             raise ValueError("沒有找到有效的美股代碼")
@@ -312,10 +309,7 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
 
         results = []
 
-        for i, stock_data in enumerate(valid_data):
-            ticker = stock_data['ticker']
-            stock_name = stock_data['name']
-
+        for i, ticker in enumerate(valid_data):
             print(f"正在處理美股 {ticker} ({i+1}/{len(valid_data)})...")
 
             try:
@@ -337,7 +331,6 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                 if indicators:
                     result = {
                         'Ticker': validated_ticker,
-                        'Name': stock_name,
                         'Close': indicators.get('close', np.nan),
                         'Daily_return': indicators.get('day_return', np.nan),
                         'Week_return': indicators.get('week_return', np.nan),
