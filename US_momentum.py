@@ -287,13 +287,12 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
     try:
         # 美股代碼列表 (硬編碼)
         us_stocks = [
-            'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'CRWV', 'NBIS', 'APLD',
-            'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'AMZN', 'DELL', 'PLTR', 'SNOW', 'META',
-            'ZETA', 'VSAT', 'FIG', 'AI', 'TSLA', 'NTVS', 'NFLX', 'AAPL', 'QUBT', 'QBTS',
-            'RGTI', 'BMNR', 'HOOD', 'COIN', 'IONQ', 'CRCL', 'ONDS', 'RKLB', 'KTOS', 'UMAC',
-            'OPEN', 'SHOP', 'APP', 'SOUN', 'SPOT', 'LYFT', 'UPST', 'SOFI', 'AFRM', 'PGY',
-            'ROKU', 'RXRX', 'HIMS', 'LFMD', 'TWST', 'CELH', 'UNH', 'QS', 'SMR', 'OKLO',
-            'LEU', 'GEV', 'VST', 'GLD', 'VRSN', 'MP', 'RBLX', 'BABA', 'ARKK', 'VOO', 'QQQ', 'TSLY'
+            'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'WDC', 'CRWV', 'NBIS',
+            'APLD', 'NVTS', 'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'TSLA', 'NFLX', 'AAPL',
+            'META', 'AMZN', 'DELL', 'IBM', 'PLTR', 'SNOW', 'ZETA', 'VSAT', 'QUBT', 'RGTI',
+            'IONQ', 'BMNR', 'HOOD', 'SES', 'ONDS', 'RKLB', 'KTOS', 'OPEN', 'SOUN', 'SOFI',
+            'QSI', 'ISRG', 'SDGR', 'RXRX', 'HIMS', 'UUUU', 'QS', 'SMR', 'LEU', 'VST',
+            'WMT', 'BYND', 'MP', 'RBLX'
         ]
 
         # 過濾掉空值和重複，並清理代碼
