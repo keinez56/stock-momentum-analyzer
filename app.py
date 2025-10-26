@@ -696,15 +696,17 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
     """處理使用者上傳的檔案並計算技術指標"""
     try:
         # 讀取上傳的檔案
+        st.write(f"📄 正在讀取檔案: {uploaded_file.name}")
         data = pd.read_excel(uploaded_file)
+        st.write(f"✅ 成功讀取檔案，共 {len(data)} 行，欄位: {data.columns.tolist()}")
 
         # 自動識別股票代碼欄位
         ticker_column = None
         name_column = None
 
         # 檢查各種可能的欄位名稱
-        ticker_keywords = ['代碼', 'code', 'ticker', 'symbol', '股票代碼', 'stock_code', '證券代號', 'Ticker', 'Code', 'Symbol']
-        name_keywords = ['名稱', 'name', '股票名稱', 'stock_name', '證券名稱', 'Name', '公司名稱', 'company']
+        ticker_keywords = ['代碼', 'code', 'ticker', 'symbol', '股票代碼', 'stock_code', '證券代號', 'Ticker', 'Code', 'Symbol', '股票代码']
+        name_keywords = ['名稱', 'name', '股票名稱', 'stock_name', '證券名稱', 'Name', '公司名稱', 'company', '股票名称', '名称']
 
         # 尋找股票代碼欄位
         for col in data.columns:
@@ -725,11 +727,22 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
         # 如果找不到特定欄位名，使用第一欄作為代碼，第二欄作為名稱
         if ticker_column is None:
             ticker_column = data.columns[0]
+            st.write(f"⚠️ 未找到明確的代碼欄位，使用第一欄: {ticker_column}")
+        else:
+            st.write(f"✅ 識別到代碼欄位: {ticker_column}")
+
         if name_column is None and len(data.columns) > 1:
             name_column = data.columns[1]
+            st.write(f"⚠️ 未找到明確的名稱欄位，使用第二欄: {name_column}")
+        elif name_column:
+            st.write(f"✅ 識別到名稱欄位: {name_column}")
+        else:
+            st.write(f"⚠️ 只有一欄資料，將使用 'Unknown' 作為股票名稱")
 
         tickers = data[ticker_column].dropna()
         names = data[name_column].dropna() if name_column else pd.Series(['Unknown'] * len(tickers))
+
+        st.write(f"📊 找到 {len(tickers)} 個股票代碼")
 
         # 開始處理股票數據
         today = date.today()
@@ -809,16 +822,24 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                     possible_tickers = [ticker, ticker.upper(), f"{ticker}.TW", f"{ticker}.TWO"]
 
                 df = None
+                download_success = False
                 for test_ticker in possible_tickers:
                     try:
+                        print(f"嘗試下載 {test_ticker}...")
                         df = yf.download(test_ticker, start=start_day, end=stock_end_date, auto_adjust=False, progress=False)
                         if not df.empty and len(df) >= 60:
                             ticker = test_ticker  # 使用成功的代碼
+                            download_success = True
+                            print(f"✅ 成功下載 {test_ticker}，共 {len(df)} 筆數據")
                             break
-                    except:
+                        else:
+                            print(f"⚠️ {test_ticker} 數據不足: {len(df)} 筆")
+                    except Exception as e:
+                        print(f"❌ 下載 {test_ticker} 失敗: {e}")
                         continue
 
                 if df is None or df.empty or len(df) < 60:
+                    print(f"⚠️ 跳過 {ticker}: 無法獲取足夠數據")
                     continue
 
                 # 計算技術指標
@@ -895,12 +916,18 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                     results.append(result)
 
             except Exception as e:
+                print(f"❌ 處理股票 {ticker} 時發生錯誤: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
 
+        st.write(f"✅ 成功處理 {len(results)} 檔股票")
         return pd.DataFrame(results), ticker_column, name_column
 
     except Exception as e:
         st.error(f"❌ 處理上傳檔案時發生錯誤: {e}")
+        import traceback
+        st.error(f"詳細錯誤: {traceback.format_exc()}")
         return None, None, None
 
 # Streamlit 主介面
