@@ -10,7 +10,6 @@ import warnings
 import talib
 from io import BytesIO
 import time
-import requests
 
 warnings.filterwarnings('ignore')
 
@@ -30,9 +29,6 @@ def calculate_sma_trend(tickers):
     failed_details = []  # 記錄詳細失敗原因
     expected_length = len(reference_dates)
 
-    # 創建共用的 session 以提高效率
-    session = requests.Session()
-
     # 批量下載以提高效率（分批處理，每批10支股票）
     batch_size = 10
     for batch_start in range(0, len(tickers), batch_size):
@@ -42,7 +38,7 @@ def calculate_sma_trend(tickers):
         try:
             tickers_str = ' '.join(batch_tickers)
             df_batch = yf.download(tickers_str, period='3mo', progress=False,
-                                  group_by='ticker', timeout=60, threads=True, session=session)
+                                  group_by='ticker', timeout=60, threads=True)
 
             # 處理批量下載的結果
             for ticker in batch_tickers:
@@ -98,7 +94,7 @@ def calculate_sma_trend(tickers):
                     while retry_count < max_retries and not success:
                         try:
                             time.sleep(0.2)  # 延遲0.2秒避免速率限制
-                            df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30, session=session)
+                            df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30)
 
                             if df_ticker.empty:
                                 retry_count += 1
@@ -149,7 +145,7 @@ def calculate_sma_trend(tickers):
                 while retry_count < max_retries and not success:
                     try:
                         time.sleep(0.2)
-                        df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30, session=session)
+                        df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30)
 
                         if df_ticker.empty:
                             retry_count += 1
