@@ -13,183 +13,58 @@ from io import BytesIO
 warnings.filterwarnings('ignore')
 
 def calculate_sma_trend_fallback(tickers, reference_dates):
-    """分批下載的備用方案"""
+    """逐一下載的備用方案"""
     data_dict = {}
     failed_tickers = []
     expected_length = len(reference_dates)
+    total = len(tickers)
 
-    # 分批下載（每批20支）
-    batch_size = 20
-    total_batches = (len(tickers) + batch_size - 1) // batch_size
+    st.write(f"📥 開始逐一下載 {total} 支股票...")
 
-    for batch_idx in range(0, len(tickers), batch_size):
-        batch_tickers = tickers[batch_idx:batch_idx + batch_size]
-        batch_num = batch_idx // batch_size + 1
-
-        st.write(f"📦 下載第 {batch_num}/{total_batches} 批 ({len(batch_tickers)} 支股票)...")
+    # 逐一下載每支股票
+    for i, ticker in enumerate(tickers, 1):
+        if i % 10 == 0:  # 每10支顯示一次進度
+            st.write(f"進度: {i}/{total} ({i*100//total}%)")
 
         try:
-            # 使用列表格式
-            df_batch = yf.download(tickers=batch_tickers, period='3mo', progress=False,
-                                  group_by='ticker', threads=True)
+            # 單獨下載一支股票
+            df_ticker = yf.download(ticker, period='3mo', progress=False)
 
-            if df_batch.empty:
-                failed_tickers.extend(batch_tickers)
-                continue
-
-            # 處理這批股票
-            for ticker in batch_tickers:
-                try:
-                    if len(batch_tickers) == 1:
-                        df_ticker = df_batch
-                    else:
-                        if ticker in df_batch.columns.get_level_values(0):
-                            df_ticker = df_batch[ticker]
-                        else:
-                            failed_tickers.append(ticker)
-                            continue
-
-                    if df_ticker.empty:
-                        failed_tickers.append(ticker)
-                        continue
-
-                    df_ticker = df_ticker.reindex(reference_dates, method='ffill')
-
-                    if len(df_ticker) != expected_length:
-                        failed_tickers.append(ticker)
-                        continue
-
-                    close_array = df_ticker['Close'].to_numpy().reshape(-1)
-                    ma20 = talib.SMA(close_array, timeperiod=20)
-
-                    valid_mask = ~np.isnan(ma20)
-                    if valid_mask.sum() > 0:
-                        close_valid = close_array[valid_mask]
-                        ma20_valid = ma20[valid_mask]
-                        res_valid = np.where(close_valid > ma20_valid, 1, 0)
-
-                        res = np.zeros(len(close_array))
-                        res[valid_mask] = res_valid
-
-                        if len(res) == expected_length:
-                            data_dict[ticker] = res
-                        else:
-                            failed_tickers.append(ticker)
-                    else:
-                        failed_tickers.append(ticker)
-
-                except Exception as e:
-                    failed_tickers.append(ticker)
-                    continue
-
-        except Exception as batch_error:
-            st.warning(f"⚠️ 第 {batch_num} 批下載失敗，跳過")
-            failed_tickers.extend(batch_tickers)
-            continue
-
-    if not data_dict:
-        return pd.Series(dtype='float64'), failed_tickers
-
-    df_temp = pd.DataFrame(data_dict, index=reference_dates)
-
-    if len(df_temp.columns) > 0:
-        row_sums = round(df_temp.sum(axis=1) / len(df_temp.columns) * 100)
-    else:
-        row_sums = pd.Series(dtype='float64')
-
-    st.write(f"✅ 分批下載完成：成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支")
-
-    return row_sums, failed_tickers
-
-def calculate_sma_trend(tickers):
-    """計算股票相對於20日均線的趨勢百分比（簡化優化版）"""
-    # 先獲取參考日期（使用SPY作為基準）
-    try:
-        reference_df = yf.download('SPY', period='3mo', progress=False)
-        if reference_df.empty:
-            return pd.Series(dtype='float64'), []
-        reference_dates = reference_df.index
-    except:
-        return pd.Series(dtype='float64'), []
-
-    data_dict = {}
-    failed_tickers = []
-    expected_length = len(reference_dates)
-
-    # 一次性批量下載所有股票
-    try:
-        st.write(f"📥 正在批量下載 {len(tickers)} 支股票數據...")
-
-        # yfinance 新版本：使用列表而不是空格分隔的字符串
-        # 也可以嘗試使用 tickers 參數
-        df_batch = yf.download(tickers=tickers, period='3mo', progress=False,
-                              group_by='ticker', threads=True)
-
-        # 檢查下載是否成功
-        if df_batch.empty:
-            st.error("❌ 批量下載失敗：返回空數據")
-            return pd.Series(dtype='float64'), tickers
-
-        st.write(f"✅ 下載完成，共獲取 {len(df_batch.columns.get_level_values(0).unique()) if hasattr(df_batch.columns, 'get_level_values') else 1} 支股票數據")
-        st.write(f"🔄 開始處理數據...")
-
-        # 處理每支股票
-        for ticker in tickers:
-            try:
-                # 獲取該股票的數據
-                if len(tickers) == 1:
-                    df_ticker = df_batch
-                else:
-                    if ticker in df_batch.columns.get_level_values(0):
-                        df_ticker = df_batch[ticker]
-                    else:
-                        failed_tickers.append(ticker)
-                        continue
-
-                if df_ticker.empty:
-                    failed_tickers.append(ticker)
-                    continue
-
-                # 重新索引到參考日期
-                df_ticker = df_ticker.reindex(reference_dates, method='ffill')
-
-                if len(df_ticker) != expected_length:
-                    failed_tickers.append(ticker)
-                    continue
-
-                # 計算20日SMA
-                close_array = df_ticker['Close'].to_numpy().reshape(-1)
-                ma20 = talib.SMA(close_array, timeperiod=20)
-
-                # 只使用有效的MA20值
-                valid_mask = ~np.isnan(ma20)
-                if valid_mask.sum() > 0:
-                    close_valid = close_array[valid_mask]
-                    ma20_valid = ma20[valid_mask]
-                    res_valid = np.where(close_valid > ma20_valid, 1, 0)
-
-                    res = np.zeros(len(close_array))
-                    res[valid_mask] = res_valid
-
-                    if len(res) == expected_length:
-                        data_dict[ticker] = res
-                    else:
-                        failed_tickers.append(ticker)
-                else:
-                    failed_tickers.append(ticker)
-
-            except Exception as e:
+            if df_ticker.empty:
                 failed_tickers.append(ticker)
                 continue
 
-    except Exception as batch_error:
-        st.error(f"❌ 批量下載發生異常")
-        st.error(f"錯誤類型: {type(batch_error).__name__}")
-        st.error(f"錯誤訊息: {str(batch_error)[:200]}")
+            # 重新索引到參考日期
+            df_ticker = df_ticker.reindex(reference_dates, method='ffill')
 
-        # 嘗試回退到分批下載
-        st.warning("⚠️ 嘗試使用分批下載方式...")
-        return calculate_sma_trend_fallback(tickers, reference_dates)
+            if len(df_ticker) != expected_length:
+                failed_tickers.append(ticker)
+                continue
+
+            # 計算20日SMA
+            close_array = df_ticker['Close'].to_numpy().reshape(-1)
+            ma20 = talib.SMA(close_array, timeperiod=20)
+
+            # 只使用有效的MA20值
+            valid_mask = ~np.isnan(ma20)
+            if valid_mask.sum() > 0:
+                close_valid = close_array[valid_mask]
+                ma20_valid = ma20[valid_mask]
+                res_valid = np.where(close_valid > ma20_valid, 1, 0)
+
+                res = np.zeros(len(close_array))
+                res[valid_mask] = res_valid
+
+                if len(res) == expected_length:
+                    data_dict[ticker] = res
+                else:
+                    failed_tickers.append(ticker)
+            else:
+                failed_tickers.append(ticker)
+
+        except Exception as e:
+            failed_tickers.append(ticker)
+            continue
 
     if not data_dict:
         return pd.Series(dtype='float64'), failed_tickers
@@ -203,7 +78,88 @@ def calculate_sma_trend(tickers):
     else:
         row_sums = pd.Series(dtype='float64')
 
-    st.write(f"✅ 成功處理 {len(data_dict)} 支股票，失敗 {len(failed_tickers)} 支")
+    st.write(f"✅ 下載完成：成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支")
+
+    return row_sums, failed_tickers
+
+def calculate_sma_trend(tickers):
+    """計算股票相對於20日均線的趨勢百分比（逐一下載版本）"""
+    # 先獲取參考日期（使用SPY作為基準）
+    try:
+        reference_df = yf.download('SPY', period='3mo', progress=False)
+        if reference_df.empty:
+            return pd.Series(dtype='float64'), []
+        reference_dates = reference_df.index
+    except:
+        return pd.Series(dtype='float64'), []
+
+    data_dict = {}
+    failed_tickers = []
+    expected_length = len(reference_dates)
+    total = len(tickers)
+
+    st.write(f"📥 開始逐一下載 {total} 支股票數據...")
+
+    # 逐一下載每支股票
+    for i, ticker in enumerate(tickers, 1):
+        # 每10支顯示一次進度
+        if i % 10 == 0 or i == 1 or i == total:
+            st.write(f"📊 進度: {i}/{total} ({i*100//total}%)")
+
+        try:
+            # 單獨下載一支股票
+            df_ticker = yf.download(ticker, period='3mo', progress=False)
+
+            if df_ticker.empty:
+                failed_tickers.append(ticker)
+                continue
+
+            # 重新索引到參考日期
+            df_ticker = df_ticker.reindex(reference_dates, method='ffill')
+
+            if len(df_ticker) != expected_length:
+                failed_tickers.append(ticker)
+                continue
+
+            # 計算20日SMA
+            close_array = df_ticker['Close'].to_numpy().reshape(-1)
+            ma20 = talib.SMA(close_array, timeperiod=20)
+
+            # 只使用有效的MA20值
+            valid_mask = ~np.isnan(ma20)
+            if valid_mask.sum() > 0:
+                close_valid = close_array[valid_mask]
+                ma20_valid = ma20[valid_mask]
+                res_valid = np.where(close_valid > ma20_valid, 1, 0)
+
+                res = np.zeros(len(close_array))
+                res[valid_mask] = res_valid
+
+                if len(res) == expected_length:
+                    data_dict[ticker] = res
+                else:
+                    failed_tickers.append(ticker)
+            else:
+                failed_tickers.append(ticker)
+
+        except Exception:
+            failed_tickers.append(ticker)
+            continue
+
+    if not data_dict:
+        st.error("❌ 沒有成功下載任何股票數據")
+        return pd.Series(dtype='float64'), failed_tickers
+
+    # 使用字典創建DataFrame
+    df_temp = pd.DataFrame(data_dict, index=reference_dates)
+
+    # 計算每日高於MA20的股票百分比
+    if len(df_temp.columns) > 0:
+        row_sums = round(df_temp.sum(axis=1) / len(df_temp.columns) * 100)
+    else:
+        row_sums = pd.Series(dtype='float64')
+
+    st.write(f"✅ 下載完成：成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支")
 
     return row_sums, failed_tickers
 
