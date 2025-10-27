@@ -10,16 +10,14 @@ import warnings
 import talib
 from io import BytesIO
 from collections import OrderedDict
-import time
-import requests
 
 warnings.filterwarnings('ignore')
 
 def calculate_sector_trend(tickers, sector_name):
-    """計算行業趨勢（改進版：加入重試機制、延遲和批量下載）"""
+    """計算行業趨勢（逐一下載版本）"""
     # 先獲取參考日期（使用SPY作為基準）
     try:
-        reference_df = yf.download('SPY', period='3mo', progress=False, timeout=30)
+        reference_df = yf.download('SPY', period='3mo', progress=False)
         if reference_df.empty:
             return pd.Series(dtype='float64'), []
         reference_dates = reference_df.index
@@ -28,181 +26,59 @@ def calculate_sector_trend(tickers, sector_name):
 
     data_dict = {}
     failed_tickers = []
-    failed_details = []  # 記錄詳細失敗原因
     expected_length = len(reference_dates)
+    total = len(tickers)
 
-    # 創建共用的 session 以提高效率
-    session = requests.Session()
+    st.write(f"📥 {sector_name}: 開始下載 {total} 支股票...")
 
-    # 批量下載以提高效率（分批處理，每批10支股票）
-    batch_size = 10
-    for batch_start in range(0, len(tickers), batch_size):
-        batch_tickers = tickers[batch_start:batch_start + batch_size]
+    # 逐一下載每支股票
+    for i, ticker in enumerate(tickers, 1):
+        # 每5支顯示一次進度（行業股票數量較少）
+        if i % 5 == 0 or i == 1 or i == total:
+            st.write(f"  {sector_name} 進度: {i}/{total}")
 
-        # 嘗試批量下載
         try:
-            tickers_str = ' '.join(batch_tickers)
-            df_batch = yf.download(tickers_str, period='3mo', progress=False,
-                                  group_by='ticker', timeout=60, threads=True, session=session)
+            # 單獨下載一支股票
+            df_ticker = yf.download(ticker, period='3mo', progress=False)
 
-            # 處理批量下載的結果
-            for ticker in batch_tickers:
-                try:
-                    # 如果只有一支股票，df_batch 結構不同
-                    if len(batch_tickers) == 1:
-                        df_ticker = df_batch
-                    else:
-                        df_ticker = df_batch[ticker] if ticker in df_batch.columns.get_level_values(0) else pd.DataFrame()
+            if df_ticker.empty:
+                failed_tickers.append(ticker)
+                continue
 
-                    if df_ticker.empty:
-                        failed_tickers.append(ticker)
-                        failed_details.append((ticker, "Empty data from batch download"))
-                        continue
+            # 重新索引到參考日期
+            df_ticker = df_ticker.reindex(reference_dates, method='ffill')
 
-                    # 重新索引到參考日期
-                    df_ticker = df_ticker.reindex(reference_dates, method='ffill')
+            if len(df_ticker) != expected_length:
+                failed_tickers.append(ticker)
+                continue
 
-                    if len(df_ticker) != expected_length:
-                        failed_tickers.append(ticker)
-                        failed_details.append((ticker, f"Length mismatch: {len(df_ticker)} vs {expected_length}"))
-                        continue
+            # 計算20日SMA
+            close_array = df_ticker['Close'].to_numpy().reshape(-1)
+            ma20 = talib.SMA(close_array, timeperiod=20)
 
-                    # 計算20日SMA
-                    close_array = df_ticker['Close'].to_numpy().reshape(-1)
-                    ma20 = talib.SMA(close_array, timeperiod=20)
+            # 只使用有效的MA20值
+            valid_mask = ~np.isnan(ma20)
+            if valid_mask.sum() > 0:
+                close_valid = close_array[valid_mask]
+                ma20_valid = ma20[valid_mask]
+                res_valid = np.where(close_valid > ma20_valid, 1, 0)
 
-                    # 只使用有效的MA20值
-                    valid_mask = ~np.isnan(ma20)
-                    if valid_mask.sum() > 0:
-                        close_valid = close_array[valid_mask]
-                        ma20_valid = ma20[valid_mask]
-                        res_valid = np.where(close_valid > ma20_valid, 1, 0)
+                res = np.zeros(len(close_array))
+                res[valid_mask] = res_valid
 
-                        res = np.zeros(len(close_array))
-                        res[valid_mask] = res_valid
-
-                        if len(res) == expected_length:
-                            data_dict[ticker] = res
-                        else:
-                            failed_tickers.append(ticker)
-                            failed_details.append((ticker, f"Result length mismatch"))
-                    else:
-                        failed_tickers.append(ticker)
-                        failed_details.append((ticker, "No valid MA20 data"))
-
-                except Exception as e:
-                    # 批量下載失敗的股票，嘗試單獨下載
-                    retry_count = 0
-                    max_retries = 3
-                    success = False
-
-                    while retry_count < max_retries and not success:
-                        try:
-                            time.sleep(0.2)  # 延遲0.2秒避免速率限制
-                            df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30, session=session)
-
-                            if df_ticker.empty:
-                                retry_count += 1
-                                time.sleep(0.5)
-                                continue
-
-                            df_ticker = df_ticker.reindex(reference_dates, method='ffill')
-
-                            if len(df_ticker) != expected_length:
-                                retry_count += 1
-                                continue
-
-                            close_array = df_ticker['Close'].to_numpy().reshape(-1)
-                            ma20 = talib.SMA(close_array, timeperiod=20)
-
-                            valid_mask = ~np.isnan(ma20)
-                            if valid_mask.sum() > 0:
-                                close_valid = close_array[valid_mask]
-                                ma20_valid = ma20[valid_mask]
-                                res_valid = np.where(close_valid > ma20_valid, 1, 0)
-
-                                res = np.zeros(len(close_array))
-                                res[valid_mask] = res_valid
-
-                                if len(res) == expected_length:
-                                    data_dict[ticker] = res
-                                    success = True
-                                else:
-                                    retry_count += 1
-                            else:
-                                retry_count += 1
-
-                        except Exception as retry_error:
-                            retry_count += 1
-                            time.sleep(0.5)
-
-                    if not success:
-                        failed_tickers.append(ticker)
-                        failed_details.append((ticker, f"Failed after {max_retries} retries: {str(e)[:50]}"))
-
-        except Exception as batch_error:
-            # 批量下載完全失敗，逐一下載這批股票
-            for ticker in batch_tickers:
-                retry_count = 0
-                max_retries = 3
-                success = False
-
-                while retry_count < max_retries and not success:
-                    try:
-                        time.sleep(0.2)
-                        df_ticker = yf.download(ticker, period='3mo', progress=False, timeout=30, session=session)
-
-                        if df_ticker.empty:
-                            retry_count += 1
-                            time.sleep(0.5)
-                            continue
-
-                        df_ticker = df_ticker.reindex(reference_dates, method='ffill')
-
-                        if len(df_ticker) != expected_length:
-                            retry_count += 1
-                            continue
-
-                        close_array = df_ticker['Close'].to_numpy().reshape(-1)
-                        ma20 = talib.SMA(close_array, timeperiod=20)
-
-                        valid_mask = ~np.isnan(ma20)
-                        if valid_mask.sum() > 0:
-                            close_valid = close_array[valid_mask]
-                            ma20_valid = ma20[valid_mask]
-                            res_valid = np.where(close_valid > ma20_valid, 1, 0)
-
-                            res = np.zeros(len(close_array))
-                            res[valid_mask] = res_valid
-
-                            if len(res) == expected_length:
-                                data_dict[ticker] = res
-                                success = True
-                            else:
-                                retry_count += 1
-                        else:
-                            retry_count += 1
-
-                    except Exception as retry_error:
-                        retry_count += 1
-                        time.sleep(0.5)
-
-                if not success:
+                if len(res) == expected_length:
+                    data_dict[ticker] = res
+                else:
                     failed_tickers.append(ticker)
-                    failed_details.append((ticker, f"Batch download failed, individual retries failed"))
+            else:
+                failed_tickers.append(ticker)
 
-        # 每批之間稍微延遲
-        time.sleep(0.3)
-
-    # 輸出詳細的失敗資訊（用於除錯）
-    if failed_details:
-        print(f"\n{sector_name} 失敗詳情:")
-        for ticker, reason in failed_details[:5]:  # 只顯示前5個
-            print(f"  {ticker}: {reason}")
-        if len(failed_details) > 5:
-            print(f"  ... 還有 {len(failed_details) - 5} 支股票失敗")
+        except Exception:
+            failed_tickers.append(ticker)
+            continue
 
     if not data_dict:
+        st.warning(f"⚠️ {sector_name}: 沒有成功下載任何股票")
         return pd.Series(dtype='float64'), failed_tickers
 
     # 使用字典創建DataFrame
@@ -213,6 +89,8 @@ def calculate_sector_trend(tickers, sector_name):
         row_sums = round(df_temp.sum(axis=1) / len(df_temp.columns) * 100)
     else:
         row_sums = pd.Series(dtype='float64')
+
+    st.write(f"✅ {sector_name}: 成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支")
 
     return row_sums, failed_tickers
 
