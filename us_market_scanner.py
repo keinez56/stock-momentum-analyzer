@@ -29,8 +29,8 @@ def calculate_sma_trend_fallback(tickers, reference_dates):
         st.write(f"📦 下載第 {batch_num}/{total_batches} 批 ({len(batch_tickers)} 支股票)...")
 
         try:
-            tickers_str = ' '.join(batch_tickers)
-            df_batch = yf.download(tickers_str, period='3mo', progress=False,
+            # 使用列表格式
+            df_batch = yf.download(tickers=batch_tickers, period='3mo', progress=False,
                                   group_by='ticker', threads=True)
 
             if df_batch.empty:
@@ -119,10 +119,10 @@ def calculate_sma_trend(tickers):
     # 一次性批量下載所有股票
     try:
         st.write(f"📥 正在批量下載 {len(tickers)} 支股票數據...")
-        tickers_str = ' '.join(tickers)
 
-        # 增加超時時間，避免大批量下載超時
-        df_batch = yf.download(tickers_str, period='3mo', progress=False,
+        # yfinance 新版本：使用列表而不是空格分隔的字符串
+        # 也可以嘗試使用 tickers 參數
+        df_batch = yf.download(tickers=tickers, period='3mo', progress=False,
                               group_by='ticker', threads=True)
 
         # 檢查下載是否成功
