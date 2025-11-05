@@ -16,11 +16,19 @@ warnings.filterwarnings('ignore')
 def calculate_sector_trend(tickers, sector_name):
     """計算行業趨勢（逐一下載版本）"""
     # 先獲取參考日期（使用SPY作為基準）
+    # 使用明確的日期範圍，確保包含最新數據
+    from datetime import date, timedelta
+
     try:
-        reference_df = yf.download('SPY', period='3mo', progress=False)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)  # 3個月
+
+        reference_df = yf.download('SPY', start=start_date, end=end_date, progress=False)
         if reference_df.empty:
             return pd.Series(dtype='float64'), []
         reference_dates = reference_df.index
+
+        st.write(f"📅 {sector_name} 日期範圍: {reference_dates[0].strftime('%Y-%m-%d')} 至 {reference_dates[-1].strftime('%Y-%m-%d')}")
     except:
         return pd.Series(dtype='float64'), []
 
@@ -38,8 +46,8 @@ def calculate_sector_trend(tickers, sector_name):
             st.write(f"  {sector_name} 進度: {i}/{total}")
 
         try:
-            # 單獨下載一支股票
-            df_ticker = yf.download(ticker, period='3mo', progress=False)
+            # 單獨下載一支股票（使用與SPY相同的日期範圍）
+            df_ticker = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
             if df_ticker.empty:
                 failed_tickers.append(ticker)

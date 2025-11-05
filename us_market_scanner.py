@@ -14,10 +14,16 @@ warnings.filterwarnings('ignore')
 
 def calculate_sma_trend_fallback(tickers, reference_dates):
     """逐一下載的備用方案"""
+    from datetime import date, timedelta
+
     data_dict = {}
     failed_tickers = []
     expected_length = len(reference_dates)
     total = len(tickers)
+
+    # 設定日期範圍
+    end_date = date.today()
+    start_date = end_date - timedelta(days=90)
 
     st.write(f"📥 開始逐一下載 {total} 支股票...")
 
@@ -28,7 +34,7 @@ def calculate_sma_trend_fallback(tickers, reference_dates):
 
         try:
             # 單獨下載一支股票
-            df_ticker = yf.download(ticker, period='3mo', progress=False)
+            df_ticker = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
             if df_ticker.empty:
                 failed_tickers.append(ticker)
@@ -85,11 +91,19 @@ def calculate_sma_trend_fallback(tickers, reference_dates):
 def calculate_sma_trend(tickers):
     """計算股票相對於20日均線的趨勢百分比（逐一下載版本）"""
     # 先獲取參考日期（使用SPY作為基準）
+    # 使用明確的日期範圍，確保包含最新數據
+    from datetime import date, timedelta
+
     try:
-        reference_df = yf.download('SPY', period='3mo', progress=False)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)  # 3個月
+
+        reference_df = yf.download('SPY', start=start_date, end=end_date, progress=False)
         if reference_df.empty:
             return pd.Series(dtype='float64'), []
         reference_dates = reference_df.index
+
+        st.write(f"📅 參考日期範圍: {reference_dates[0].strftime('%Y-%m-%d')} 至 {reference_dates[-1].strftime('%Y-%m-%d')} (共{len(reference_dates)}個交易日)")
     except:
         return pd.Series(dtype='float64'), []
 
@@ -108,7 +122,7 @@ def calculate_sma_trend(tickers):
 
         try:
             # 單獨下載一支股票
-            df_ticker = yf.download(ticker, period='3mo', progress=False)
+            df_ticker = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
             if df_ticker.empty:
                 failed_tickers.append(ticker)
