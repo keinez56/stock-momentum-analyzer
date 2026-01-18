@@ -98,7 +98,10 @@ def calculate_sector_trend(tickers, sector_name):
     else:
         row_sums = pd.Series(dtype='float64')
 
-    st.write(f"✅ {sector_name}: 成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支")
+    if failed_tickers:
+        st.write(f"✅ {sector_name}: 成功 {len(data_dict)} 支，失敗 {len(failed_tickers)} 支 ({', '.join(failed_tickers)})")
+    else:
+        st.write(f"✅ {sector_name}: 成功 {len(data_dict)} 支，失敗 0 支")
 
     return row_sums, failed_tickers
 
