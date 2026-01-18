@@ -116,85 +116,84 @@ def main():
     - 提供表格形式呈現和Excel報告下載
     """)
 
-    # SPX 11大類股股票代碼
+    # SPX 11大類股股票代碼 (2025年1月更新)
     sector_stocks = {
         'XLB': [  # 原材料 (26支股票)
-            'NEM', 'CF', 'BALL', 'MOS', 'AMCR', 'LIN', 'IFF', 'SHW', 'MLM', 'SW',
-            'VMC', 'NUE', 'ECL', 'AVY', 'APD', 'LYB', 'STLD', 'CTVA', 'PKG', 'DD',
-            'EMN', 'DOW', 'ALB', 'IP', 'PPG', 'FCX'
+            'LIN', 'NEM', 'SHW', 'ECL', 'VMC', 'APD', 'MLM', 'DD', 'FCX', 'NUE',
+            'CTVA', 'IP', 'PPG', 'STLD', 'PKG', 'AMCR', 'DOW', 'IFF', 'CF', 'BALL',
+            'AVY', 'LYB', 'MOS', 'ALB', 'EMN'
         ],
         'XLC': [  # 通訊服務 (23支股票)
-            'TMUS', 'T', 'VZ', 'LYV', 'NFLX', 'EA', 'MTCH', 'CMCSA', 'WBD', 'DIS',
-            'IPG', 'FOXA', 'OMC', 'CHTR', 'TTWO', 'FOX', 'META', 'PARA', 'NWS', 'GOOGL',
-            'TKO', 'GOOG', 'NWSA'
+            'META', 'GOOGL', 'GOOG', 'NFLX', 'WBD', 'VZ', 'EA', 'DIS', 'CMCSA', 'TTWO',
+            'TMUS', 'T', 'CHTR', 'LYV', 'TTD', 'OMC', 'TKO', 'FOXA', 'NWSA', 'IPG',
+            'MTCH', 'FOX', 'NWS'
         ],
-        'XLE': [  # 能源 (23支股票)
-            'APA', 'EXE', 'XOM', 'COP', 'OXY', 'SLB', 'CVX', 'WMB', 'KMI', 'BKR',
-            'HES', 'VLO', 'EQT', 'CTRA', 'HAL', 'PSX', 'TRGP', 'DVN', 'MPC', 'FANG',
-            'EOG', 'TPL', 'OKE'
+        'XLE': [  # 能源 (22支股票)
+            'XOM', 'CVX', 'COP', 'WMB', 'EOG', 'MPC', 'KMI', 'PSX', 'SLB', 'VLO',
+            'BKR', 'OKE', 'TRGP', 'EQT', 'OXY', 'FANG', 'EXE', 'DVN', 'HAL', 'TPL',
+            'CTRA', 'APA'
         ],
-        'XLF': [  # 金融 (73支股票)
-            'MMC', 'MKTX', 'FDS', 'V', 'WRB', 'MA', 'AJG', 'CBOE', 'ACGL', 'CB',
-            'L', 'BRO', 'PGR', 'CINF', 'AON', 'GL', 'WTW', 'FIS', 'EG', 'ICE',
-            'AFL', 'TROW', 'AIG', 'HIG', 'BRK-B', 'SPGI', 'TRV', 'ERIE', 'ALL', 'BLK',
-            'JKHY', 'BEN', 'MCO', 'CME', 'AIZ', 'GPN', 'CPAY', 'BAC', 'PFG', 'MSCI',
-            'SCHW', 'BK', 'NTRS', 'IVZ', 'HBAN', 'COF', 'STT', 'FITB', 'PRU', 'MET',
-            'PNC', 'FI', 'JPM', 'USB', 'AMP', 'RJF', 'TFC', 'MTB', 'RF', 'KEY',
-            'AXP', 'BX', 'NDAQ', 'PYPL', 'KKR', 'WFC', 'CFG', 'APO', 'SYF', 'C',
-            'DFS', 'GS', 'MS'
+        'XLF': [  # 金融 (76支股票)
+            'BRK-B', 'JPM', 'V', 'MA', 'BAC', 'WFC', 'GS', 'MS', 'C', 'AXP',
+            'BLK', 'SCHW', 'SPGI', 'PGR', 'COF', 'BX', 'HOOD', 'CB', 'MMC', 'CME',
+            'ICE', 'KKR', 'AJG', 'PNC', 'COIN', 'AON', 'BK', 'MCO', 'USB', 'FI',
+            'PYPL', 'TRV', 'APO', 'TFC', 'ALL', 'AFL', 'MET', 'AMP', 'AIG', 'MSCI',
+            'NDAQ', 'HIG', 'PRU', 'FIS', 'ACGL', 'WTW', 'STT', 'MTB', 'IBKR', 'RJF',
+            'FITB', 'BRO', 'SYF', 'CINF', 'NTRS', 'HBAN', 'CBOE', 'RF', 'WRB', 'CFG',
+            'TROW', 'GPN', 'CPAY', 'KEY', 'L', 'PFG', 'EG', 'GL', 'AIZ', 'JKHY',
+            'FDS', 'IVZ', 'ERIE', 'BEN'
         ],
-        'XLI': [  # 工業 (78支股票)
-            'VRSK', 'PAYC', 'ROL', 'NOC', 'PAYX', 'CPRT', 'ADP', 'EXPD', 'ODFL', 'UBER',
-            'EFX', 'RSG', 'FAST', 'CTAS', 'URI', 'HON', 'LHX', 'BA', 'OTIS', 'BR',
-            'VLTO', 'TXT', 'FDX', 'MAS', 'CSX', 'WM', 'NDSN', 'UPS', 'GD', 'DAY',
-            'HII', 'GWW', 'IR', 'ALLE', 'CHRW', 'NSC', 'LII', 'JBHT', 'WAB', 'J',
-            'IEX', 'ROK', 'LDOS', 'CAT', 'SNA', 'LMT', 'AOS', 'RTX', 'TDG', 'JCI',
-            'GE', 'BLDR', 'AME', 'FTV', 'DE', 'UNP', 'XYL', 'PNR', 'SWK', 'HWM',
-            'EMR', 'HUBB', 'LUV', 'PCAR', 'CMI', 'AXON', 'ITW', 'TT', 'ETN', 'DOV',
-            'PH', 'CARR', 'GNRC', 'PWR', 'MMM', 'DAL', 'GEV', 'UAL'
+        'XLI': [  # 工業 (80支股票)
+            'GE', 'CAT', 'RTX', 'UBER', 'GEV', 'BA', 'ETN', 'UNP', 'HON', 'ADP',
+            'DE', 'LMT', 'PH', 'TT', 'GD', 'MMM', 'WM', 'NOC', 'EMR', 'TDG',
+            'JCI', 'CTAS', 'ITW', 'NSC', 'CSX', 'PWR', 'UPS', 'URI', 'CMI', 'LHX',
+            'AXON', 'FAST', 'FDX', 'PCAR', 'CARR', 'RSG', 'AME', 'GWW', 'CPRT', 'PAYX',
+            'ROK', 'DAL', 'OTIS', 'XYL', 'VRSK', 'WAB', 'EFX', 'IR', 'UAL', 'EME',
+            'BR', 'VLTO', 'ODFL', 'LDOS', 'HUBB', 'DOV', 'J', 'SNA', 'PNR', 'FTV',
+            'LII', 'EXPD', 'CHRW', 'TXT', 'ALLE', 'MAS', 'BLDR', 'NDSN', 'IEX', 'HII',
+            'SWK', 'DAY', 'JBHT', 'GNRC', 'AOS'
         ],
-        'XLK': [  # 科技 (69支股票)
-            'VRSN', 'ROP', 'AAPL', 'ENPH', 'APH', 'DELL', 'INTC', 'MSI', 'FSLR', 'TYL',
-            'MPWR', 'MSFT', 'AKAM', 'JNPR', 'INTU', 'STX', 'GDDY', 'HPQ', 'QCOM', 'CDNS',
-            'CTSH', 'ANSS', 'TDY', 'ADBE', 'IT', 'ADSK', 'CSCO', 'GEN', 'ADI', 'FICO',
-            'KLAC', 'KEYS', 'HPE', 'SNPS', 'ACN', 'ZBRA', 'FFIV', 'MU', 'CRM', 'PTC',
-            'GLW', 'NOW', 'CRWD', 'ORCL', 'TRMB', 'FTNT', 'EPAM', 'IBM', 'WDC', 'LRCX',
-            'TEL', 'NTAP', 'SWKS', 'AMAT', 'TXN', 'NVDA', 'CDW', 'PLTR', 'WDAY', 'MCHP',
-            'TER', 'NXPI', 'ON', 'JBL', 'AMD', 'ANET', 'AVGO', 'PANW', 'SMCI'
+        'XLK': [  # 科技 (70支股票)
+            'NVDA', 'MSFT', 'AAPL', 'AVGO', 'PLTR', 'ORCL', 'CSCO', 'IBM', 'AMD', 'CRM',
+            'MU', 'APP', 'NOW', 'INTU', 'LRCX', 'QCOM', 'AMAT', 'TXN', 'INTC', 'ANET',
+            'APH', 'ACN', 'KLAC', 'ADBE', 'PANW', 'CRWD', 'ADI', 'CDNS', 'SNPS', 'MSI',
+            'ADSK', 'TEL', 'GLW', 'NXPI', 'FTNT', 'STX', 'ROP', 'DDOG', 'WDAY', 'DELL',
+            'WDC', 'MPWR', 'FICO', 'MCHP', 'HPE', 'CTSH', 'KEYS', 'SMCI', 'TDY', 'HPQ',
+            'PTC', 'FSLR', 'VRSN', 'JBL', 'NTAP', 'TYL', 'TER', 'CDW', 'ON', 'GDDY',
+            'FFIV', 'TRMB', 'IT', 'GEN', 'ZBRA', 'SWKS', 'AKAM', 'EPAM', 'ANSS'
         ],
-        'XLP': [  # 必需消費品 (38支股票)
-            'DLTR', 'DG', 'BG', 'ADM', 'HRL', 'CAG', 'SJM', 'CHD', 'CLX', 'SYY',
-            'MDLZ', 'EL', 'MNST', 'TSN', 'KHC', 'PG', 'CL', 'HSY', 'CPB', 'KO',
-            'GIS', 'COST', 'MO', 'MKC', 'BF-B', 'PEP', 'KMB', 'TAP', 'KDP', 'WBA',
-            'WMT', 'PM', 'KVUE', 'TGT', 'LW', 'KR', 'STZ', 'K'
+        'XLP': [  # 必需消費品 (37支股票)
+            'WMT', 'COST', 'PG', 'KO', 'PM', 'MDLZ', 'PEP', 'MO', 'CL', 'MNST',
+            'KMB', 'TGT', 'KR', 'SYY', 'KDP', 'KVUE', 'ADM', 'HSY', 'GIS', 'KHC',
+            'K', 'DG', 'CHD', 'EL', 'STZ', 'DLTR', 'MKC', 'TSN', 'CLX', 'BG',
+            'SJM', 'CAG', 'LW', 'TAP', 'HRL', 'CPB', 'BF-B'
         ],
         'XLRE': [  # 房地產 (31支股票)
-            'AMT', 'CCI', 'SBAC', 'WY', 'MAA', 'INVH', 'PSA', 'WELL', 'VICI', 'CPT',
-            'EXR', 'CSGP', 'VTR', 'UDR', 'PLD', 'EQR', 'ARE', 'DOC', 'AVB', 'ESS',
-            'REG', 'EQIX', 'O', 'FRT', 'CBRE', 'BXP', 'KIM', 'SPG', 'IRM', 'HST',
-            'DLR'
+            'WELL', 'PLD', 'AMT', 'EQIX', 'SPG', 'PSA', 'DLR', 'CBRE', 'CCI', 'CSGP',
+            'VICI', 'VTR', 'IRM', 'EXR', 'AVB', 'EQR', 'SBAC', 'WY', 'ESS', 'INVH',
+            'MAA', 'KIM', 'DOC', 'ARE', 'REG', 'CPT', 'BXP', 'UDR', 'HST', 'FRT',
+            'O'
         ],
-        'XLU': [  # 公用事業 (31支股票)
-            'FE', 'AWK', 'AEP', 'D', 'PPL', 'SO', 'ES', 'XEL', 'EXC', 'ATO',
-            'DUK', 'NEE', 'LNT', 'ED', 'WEC', 'CNP', 'PNW', 'EVRG', 'ETR', 'CMS',
-            'AEE', 'DTE', 'AES', 'PCG', 'NI', 'EIX', 'SRE', 'PEG', 'NRG', 'CEG',
-            'VST'
+        'XLU': [  # 公用事業 (30支股票)
+            'NEE', 'CEG', 'SO', 'DUK', 'VST', 'AEP', 'SRE', 'D', 'XEL', 'EXC',
+            'ETR', 'PEG', 'WEC', 'ED', 'PCG', 'NRG', 'DTE', 'AEE', 'ATO', 'PPL',
+            'AWK', 'ES', 'CNP', 'FE', 'EIX', 'NI', 'EVRG', 'LNT', 'AES', 'PNW'
         ],
         'XLV': [  # 醫療保健 (60支股票)
-            'ABT', 'MRNA', 'CAH', 'GILD', 'SOLV', 'HCA', 'HOLX', 'ZBH', 'ZTS', 'COO',
-            'IDXX', 'UHS', 'CI', 'BAX', 'TECH', 'COR', 'JNJ', 'MDT', 'GEHC', 'WAT',
-            'DVA', 'ABBV', 'CVS', 'STE', 'WST', 'VRTX', 'MCK', 'RMD', 'ELV', 'BDX',
-            'MTD', 'EW', 'AMGN', 'MOH', 'RVTY', 'HUM', 'SYK', 'CRL', 'DHR', 'ISRG',
-            'IQV', 'DGX', 'TMO', 'UNH', 'HSIC', 'CNC', 'BMY', 'MRK', 'LLY', 'REGN',
-            'LH', 'A', 'PFE', 'INCY', 'ALGN', 'VTRS', 'BIIB', 'BSX', 'PODD', 'DXCM'
+            'LLY', 'JNJ', 'ABBV', 'UNH', 'ABT', 'MRK', 'TMO', 'AMGN', 'ISRG', 'PFE',
+            'BSX', 'GILD', 'DHR', 'SYK', 'MDT', 'VRTX', 'CVS', 'BMY', 'MCK', 'CI',
+            'ELV', 'HCA', 'ZTS', 'REGN', 'COR', 'BDX', 'IDXX', 'EW', 'RMD', 'A',
+            'CAH', 'GEHC', 'IQV', 'HUM', 'MTD', 'DXCM', 'STE', 'LH', 'BIIB', 'PODD',
+            'DGX', 'ZBH', 'WST', 'WAT', 'CNC', 'HOLX', 'INCY', 'COO', 'VTRS', 'BAX',
+            'UHS', 'SOLV', 'MOH', 'RVTY', 'TECH', 'MRNA', 'CRL', 'ALGN', 'HSIC', 'DVA'
         ],
         'XLY': [  # 非必需消費品 (51支股票)
-            'AZO', 'ORLY', 'KMX', 'EBAY', 'GPC', 'CMG', 'LULU', 'ROST', 'LKQ', 'DPZ',
-            'SBUX', 'TJX', 'DASH', 'DHI', 'TSCO', 'TSLA', 'WYNN', 'MHK', 'DRI', 'HD',
-            'AMZN', 'LEN', 'NKE', 'GRMN', 'BBY', 'LOW', 'LVS', 'NVR', 'PHM', 'HAS',
-            'BKNG', 'MCD', 'ULTA', 'WSM', 'YUM', 'CCL', 'POOL', 'MAR', 'DECK', 'RCL',
-            'HLT', 'TPR', 'RL', 'MGM', 'NCLH', 'CZR', 'ABNB', 'EXPE', 'F', 'APTV',
-            'GM'
+            'AMZN', 'TSLA', 'HD', 'MCD', 'BKNG', 'TJX', 'LOW', 'DASH', 'SBUX', 'ORLY',
+            'NKE', 'RCL', 'AZO', 'HLT', 'MAR', 'GM', 'ABNB', 'CMG', 'ROST', 'F',
+            'DHI', 'YUM', 'GRMN', 'EBAY', 'CCL', 'TSCO', 'LEN', 'PHM', 'EXPE', 'ULTA',
+            'WSM', 'TPR', 'NVR', 'DRI', 'GPC', 'LULU', 'APTV', 'LVS', 'BBY', 'DECK',
+            'DPZ', 'RL', 'WYNN', 'NCLH', 'POOL', 'HAS', 'LKQ', 'MHK', 'MGM', 'KMX',
+            'CVNA'
         ]
     }
 
