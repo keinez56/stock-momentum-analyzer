@@ -381,23 +381,34 @@ def prepare_stock_codes():
     try:
         # 台股代碼列表 (硬編碼)
         taiwan_stocks = {
-            2330: "台灣積體電路製造",
-            2308: "台達電子工業",
-            3708: "上緯國際投資",
+            8299: "群聯電子",
             2408: "南亞科技",
+            2344: "華邦電子",
+            2454: "聯發科技",
+            6770: "力積電",
+            3260: "威剛科技",
+            2330: "台灣積體電路製造",
+            3595: "銓寶工業",
+            6239: "力成科技",
+            7769: "宏矽科技",
+            8996: "高力熱處理",
+            2308: "台達電子工業",
+            1519: "華城電機",
             1504: "東元電機",
-            2317: "鴻海精密工業",
-            2383: "台光電子材料",
-            3665: "貿聯",
-            2382: "廣達電腦",
-            3231: "緯創資通",
-            1802: "台灣玻璃工業",
+            2313: "華通電腦",
+            3491: "昇達科技",
+            8046: "南亞電路板",
             1303: "南亞塑膠工業",
-            2359: "所羅門",
-            2328: "廣宇科技",
-            2634: "漢翔航空工業",
-            8033: "雷虎科技",
-            2498: "宏達電",
+            1802: "台灣玻璃工業",
+            1717: "長興材料",
+            8422: "可寧衛",
+            6806: "森崴能源",
+            1319: "東陽實業",
+            6275: "元山科技",
+            5452: "佶優科技",
+            2241: "艾姆勒車電",
+            2317: "鴻海精密工業",
+            8431: "匯鑽科技",
         }
 
         # 建立DataFrame
@@ -923,31 +934,41 @@ def main():
     st.markdown('<div class="main-header">📊 股市動能分析系統</div>', unsafe_allow_html=True)
 
     # 創建分頁
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🇹🇼 台股分析", "🇺🇸 美股分析", "📁 自訂檔案分析", "🔍 美股趨勢掃描", "📊 美股大盤掃描"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🇹🇼 台股分析", "🇺🇸 美股分析", "📁 自訂檔案分析", "🔍 美股趨勢掃描", "📊 美股大盤掃描", "📖 指標說明"])
 
     # 側邊欄資訊
     with st.sidebar:
-        st.markdown("### 📊 系統說明")
+        st.markdown("### 📊 BBM-RTI 動能分析系統")
         st.markdown("""
         <div class="sidebar-info">
-        <strong>功能特色：</strong><br>
-        • 即時股票技術指標分析<br>
-        • 動能複合指標計算<br>
-        • Excel 格式報告下載<br>
-        • 支援台股與美股市場
+        <strong>系統特色：</strong><br>
+        • 全球總經趨勢追蹤<br>
+        • 價值＋動能雙重篩選<br>
+        • 即時技術指標分析<br>
+        • Excel 報告下載<br>
+        • 台股美股雙重支援
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 📋 包含指標")
+        st.markdown("### 📋 七大技術指標")
         st.markdown("""
-        - RSI (5日/14日)
-        - MACD 指標
+        - RSI 相對強弱 (5日/14日)
+        - MACD 動能趨勢
         - 移動平均線 (5/20/60日)
         - 布林通道
-        - 威廉指標
+        - 威廉指標 %R
         - 成交量分析
         - 複合動能指標
         """)
+
+        st.markdown("### ⚠️ 免責聲明")
+        st.markdown("""
+        <div style="font-size: 0.8rem; color: #888;">
+        指標為趨勢與動能的量化描述，非預測工具。
+        投資需考量基本面與消息面，本系統結果不構成投資建議。
+        股市波動大、風險高，投資人應自行承擔風險與盈虧。
+        </div>
+        """, unsafe_allow_html=True)
 
     # 台股分析頁面
     with tab1:
@@ -1352,6 +1373,251 @@ def main():
     # 新增的美股大盤掃描分頁
     with tab5:
         us_market_scanner_main()
+
+    # 指標說明分頁
+    with tab6:
+        st.markdown("### 📖 BBM-RTI 股票動能分析系統 - 指標說明")
+
+        # 系統介紹
+        st.markdown("""
+        <div class="info-box">
+        <strong>系統簡介</strong><br>
+        本動能模型根據全球總體經濟，找尋趨勢產業與優質國家，最終精選出長期成長動能的個股，並依模型分數進行最適資產配置。
+        <br><br>
+        本模型依據基本面、技術面，結合消息面，如政府政策方向、中長期產業趨勢、營收獲利高成長、法人資金佈局，
+        以及美國13F持股與國會議員申報資訊，系統化聚焦「價值＋動能」兼具的關鍵標的，掌握股價穩健成長，策略攻守兼備的潛力投資機會。
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # 欄位說明表格
+        st.markdown("### 📋 欄位說明對照表")
+
+        field_data = {
+            "英文欄位": ["Ticker", "Close", "Daily_return", "Week_return", "Month_return", "HigherHigh",
+                       "VolumeChange", "VC_30", "RSI_5", "RSI_14", "MACD", "MACDsignal", "MACDhist",
+                       "macdhist_signal", "MA5", "MA20", "MA60", "Crossover", "BBand", "BBand_middleband",
+                       "BBand_crossover", "willr_D", "willr_D1", "K5", "D5", "Volume_5MA", "Volume_above_5MA",
+                       "Volume_20MA", "Volume_below_20MA", "Decline_3Days", "Short_Uptrend_Momentum",
+                       "Short_Downtrend_Signal", "Institutional_Selling", "Foreign_Net", "Trust_Net",
+                       "Dealer_Net", "Total_Net", "Composite_Momentum_S", "Composite_Momentum_L"],
+            "中文名稱": ["股票代碼", "收盤價", "日報酬率", "週報酬率", "月報酬率", "創新高",
+                       "成交量變化", "量能超標30%", "RSI(5)", "RSI(14)", "MACD指標", "MACD訊號線", "MACD柱狀圖",
+                       "MACD柱狀轉折", "5日均線", "20日均線", "60日均線", "均線黃金交叉", "布林通道擴張", "布林中軌上升",
+                       "布林下軌突破", "威廉指標%D", "威廉指標%D前值", "KD K值(5)", "KD D值(5)", "5日成交量均線", "量大於5日均量",
+                       "20日成交量均線", "量低於20MA", "3日累積跌幅", "短期上升動能",
+                       "短期下跌訊號", "機構出貨指標", "外資淨買賣", "投信淨買賣",
+                       "自營商淨買賣", "三大法人合計", "短期綜合動能", "長期綜合動能"],
+            "簡要說明": ["個股代號", "當日收盤價格", "當日漲跌幅", "近一週(5日)漲跌幅", "近一個月(22日)漲跌幅", "近5日是否創一年新高",
+                       "當日量相對20日均量變化%", "成交量超過20日均量30%", "5日相對強弱指標", "14日相對強弱指標", "動能趨勢指標(12,26,9)", "MACD的9日平滑線", "MACD與訊號線差值",
+                       "柱狀圖由負轉正訊號", "短期移動平均", "中短期移動平均", "中期移動平均", "MA5向上穿越MA20", "通道連續2日擴張", "中軌(20MA)上升中",
+                       "價格向上突破下軌", "超買超賣指標(14日)", "前一期威廉%D值", "隨機指標K值(5,3,3)", "隨機指標D值(5,3,3)", "5日成交量移動平均", "目前量高於5日均量",
+                       "近20日平均成交量", "目前量低於20日均量", "近3日累積下跌幅度%", "短線上漲力道(5條件)",
+                       "短線轉弱訊號(4條件)", "大戶減碼訊號(3條件)", "外資買賣超(僅台股)", "投信買賣超(僅台股)",
+                       "自營商買賣超(僅台股)", "法人總淨買賣(僅台股)", "短期多指標綜合動能", "中長期多指標綜合動能"]
+        }
+
+        field_df = pd.DataFrame(field_data)
+        st.dataframe(field_df, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+
+        # 指標詳細說明
+        st.markdown("### 📊 七大技術指標詳細說明")
+
+        # RSI
+        with st.expander("1️⃣ RSI 相對強弱指標 (Relative Strength Index)", expanded=False):
+            st.markdown("""
+            **目的：** 衡量股價一定期間內的上漲力與下跌力。
+
+            **設定：**
+            - RSI_5：短線敏感型指標，反應快速
+            - RSI_14：標準強弱判讀，較為穩定
+
+            **判讀方式：**
+            - RSI > 70 → 超買區，股價可能過熱
+            - RSI < 30 → 超賣區，股價可能超跌
+            - RSI_5 < 20 → 短線過度修正，可能反彈
+            """)
+
+        # MACD
+        with st.expander("2️⃣ MACD 指標 (Moving Average Convergence Divergence)", expanded=False):
+            st.markdown("""
+            **目的：** 判斷趨勢方向及動能變化。
+
+            **主要構成：**
+            - **MACD 線**：短期(12日)與長期(26日)EMA差值
+            - **Signal 線**：MACD的9日平滑線
+            - **柱狀圖(Hist)**：MACD與Signal線差值，顯示多空動能增減
+
+            **判讀方式：**
+            - MACD > Signal → 多方動能增強
+            - MACD < Signal → 空方動能增加
+            - 柱狀圖由負轉正 → 多頭反轉訊號 (macdhist_signal = True)
+            """)
+
+        # 移動平均線
+        with st.expander("3️⃣ 移動平均線 (Moving Averages)", expanded=False):
+            st.markdown("""
+            **目的：** 呈現股價的短、中、長期趨勢。
+
+            **設定：**
+            - MA5：短期情緒與短線動能 (週線)
+            - MA20：中期趨勢，常視為月線成本
+            - MA60：長期趨勢 (季線)
+
+            **判讀方式：**
+            - **多頭排列** (MA5 > MA20 > MA60)：上升趨勢確認
+            - **空頭排列** (MA5 < MA20 < MA60)：下降趨勢成立
+            - **Crossover = True**：MA5向上穿越MA20，黃金交叉訊號
+            - 價格突破 MA20 → 試圖改變中期方向
+            """)
+
+        # 布林通道
+        with st.expander("4️⃣ 布林通道 (Bollinger Bands)", expanded=False):
+            st.markdown("""
+            **目的：** 分析波動度與支撐壓力區。
+
+            **構成：**
+            - 上軌：20MA + 2倍標準差
+            - 中軌：20日移動平均線
+            - 下軌：20MA - 2倍標準差
+
+            **系統指標說明：**
+            - **BBand = True**：通道連續2日擴張，進入大波動行情
+            - **BBand_middleband = True**：中軌上升中，中期趨勢向上
+            - **BBand_crossover = True**：價格向上突破下軌，可能反彈
+
+            **一般判讀：**
+            - 處於上軌 → 多頭強勢但短線偏熱
+            - 處於下軌 → 空方強勢但可能短線超賣
+            - 通道收窄 → 低波動期，可能醞釀突破
+            """)
+
+        # 威廉指標
+        with st.expander("5️⃣ 威廉指標 (Williams %R)", expanded=False):
+            st.markdown("""
+            **目的：** 短線超買／超賣的快速判斷工具。
+
+            **設定：** 14日週期
+
+            **判讀區間：**
+            - %D > -20 → 超買區
+            - %D < -80 → 超賣區
+
+            **特點：** 比RSI更敏感，反轉線索明顯，但需搭配量價確認。
+            """)
+
+        # 成交量分析
+        with st.expander("6️⃣ 成交量分析 (Volume Analysis)", expanded=False):
+            st.markdown("""
+            **目的：** 驗證趨勢是否具有支撐力。
+
+            **系統指標說明：**
+            - **VolumeChange**：當日成交量相對20日均量的變化百分比
+            - **VC_30 = True**：成交量超過20日均量30%，資金明顯流入
+            - **Volume_above_5MA = True**：目前量高於5日均量，短期量能增加
+            - **Volume_below_20MA = True**：目前量低於20日均量，量能萎縮
+
+            **判讀方式：**
+            - 價漲量增 → 趨勢健康
+            - 價漲量縮 → 上漲動能不足
+            - 價跌量增 → 可能加速下跌
+            """)
+
+        # 複合動能指標
+        with st.expander("7️⃣ 複合動能指標 (Composite Momentum Score)", expanded=False):
+            st.markdown("""
+            **目的：** 整合所有指標後給出單一「動能分數」，方便比較不同股票的強弱。
+
+            **計算公式：**
+            ```
+            短期動能 (Composite_Momentum_S) =
+                (RSI_5 - 50) +
+                (MACDhist - macdhist_signal) +
+                (MA5 - MA20) / MA20 × 100
+
+            長期動能 (Composite_Momentum_L) =
+                (RSI_14 - 50) +
+                (MACDhist - macdhist_signal) +
+                (MA20 - MA60) / MA60 × 100
+            ```
+
+            **用途：**
+            - 用單一分數比較不同股票的強弱
+            - 協助建構選股清單
+            - 偵測動能加速或鈍化的時點
+            - 作為停利／停損管理參考
+
+            **判讀：**
+            - 分數 > 10：強勢股票
+            - 分數 < -10：弱勢股票
+            """)
+
+        st.markdown("---")
+
+        # 三大核心信號
+        st.markdown("### 🎯 三大核心交易信號")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("""
+            <div style="background-color: #d4edda; padding: 1rem; border-radius: 0.5rem; border-left: 5px solid #28a745;">
+            <strong>📈 短期上升動能</strong><br>
+            <small>Short_Uptrend_Momentum</small><br><br>
+            <strong>5個條件全滿足：</strong><br>
+            1. 收盤價 > MA5<br>
+            2. 成交量 > 5日均量<br>
+            3. K值 > D值<br>
+            4. RSI14 > 50<br>
+            5. MACD柱狀 > 0
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown("""
+            <div style="background-color: #f8d7da; padding: 1rem; border-radius: 0.5rem; border-left: 5px solid #dc3545;">
+            <strong>📉 短期下跌訊號</strong><br>
+            <small>Short_Downtrend_Signal</small><br><br>
+            <strong>4個條件全滿足：</strong><br>
+            1. 收盤價 < MA5<br>
+            2. 成交量 < 20日均量<br>
+            3. K值 < D值<br>
+            4. MACD柱狀 < 0<br>
+            &nbsp;
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col3:
+            st.markdown("""
+            <div style="background-color: #fff3cd; padding: 1rem; border-radius: 0.5rem; border-left: 5px solid #ffc107;">
+            <strong>🏦 機構出貨指標</strong><br>
+            <small>Institutional_Selling</small><br><br>
+            <strong>3個條件全滿足：</strong><br>
+            1. 收盤價 < MA20<br>
+            2. 成交量 > 5日均量<br>
+            3. 3日累積跌幅 > 5%<br>
+            &nbsp;<br>
+            &nbsp;
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # 注意事項
+        st.markdown("### ⚠️ 重要注意事項")
+        st.markdown("""
+        <div class="warning-box">
+        <strong>投資風險提示：</strong><br><br>
+        • 技術指標為趨勢與動能的<strong>量化描述</strong>，並非預測工具<br>
+        • 股票投資需綜合觀察<strong>基本面、技術面與消息面</strong><br>
+        • 本系統分析結果<strong>不應構成投資建議</strong><br>
+        • 股票市場波動大、風險高，<strong>投資人應自行承擔風險與盈虧</strong><br>
+        • 建議搭配其他分析工具與個人判斷，審慎評估後再行投資
+        </div>
+        """, unsafe_allow_html=True)
 
     # 頁腳
     st.markdown("---")

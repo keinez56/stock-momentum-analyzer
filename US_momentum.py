@@ -287,12 +287,12 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
     try:
         # 美股代碼列表 (硬編碼)
         us_stocks = [
-            'NVDA', 'AVGO', 'TSM', 'MRVL', 'AMD', 'INTC', 'MU', 'WDC', 'CRWV', 'NBIS',
-            'APLD', 'NVTS', 'ORCL', 'MSFT', 'GOOG', 'VRT', 'SMCI', 'TSLA', 'NFLX', 'AAPL',
-            'META', 'AMZN', 'DELL', 'IBM', 'PLTR', 'SNOW', 'ZETA', 'VSAT', 'QUBT', 'RGTI',
-            'IONQ', 'BMNR', 'HOOD', 'SES', 'ONDS', 'RKLB', 'KTOS', 'OPEN', 'SOUN', 'SOFI',
-            'QSI', 'ISRG', 'SDGR', 'RXRX', 'HIMS', 'UUUU', 'QS', 'SMR', 'LEU', 'VST',
-            'WMT', 'BYND', 'MP', 'RBLX'
+            'SMH', 'MU', 'WDC', 'STX', 'SNDK', 'LITE', 'NVDA', 'AVGO', 'MRVL', 'AMD',
+            'INTC', 'CRWV', 'NBIS', 'APLD', 'NVTS', 'ORCL', 'MSFT', 'GOOGL', 'TSLA', 'NFLX',
+            'AAPL', 'META', 'AMZN', 'IBM', 'PLTR', 'ZETA', 'VSAT', 'RBLX', 'QUBT', 'ONDS',
+            'RKLB', 'URA', 'KTOS', 'IREN', 'UUUU', 'QS', 'SMR', 'LEU', 'VST', 'XME',
+            'XLP', 'WMT', 'COST', 'BYND', 'LIY', 'NVO', 'ISRG', 'SDGR', 'RXRX', 'RGC',
+            'MP', 'CRML', 'LAC', 'UAMY'
         ]
 
         # 過濾掉空值和重複，並清理代碼
