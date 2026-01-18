@@ -139,7 +139,7 @@ def main():
         'XLF': [  # 金融 (76支股票)
             'BRK-B', 'JPM', 'V', 'MA', 'BAC', 'WFC', 'GS', 'MS', 'C', 'AXP',
             'BLK', 'SCHW', 'SPGI', 'PGR', 'COF', 'BX', 'HOOD', 'CB', 'MMC', 'CME',
-            'ICE', 'KKR', 'AJG', 'PNC', 'COIN', 'AON', 'BK', 'MCO', 'USB', 'FI',
+            'ICE', 'KKR', 'AJG', 'PNC', 'COIN', 'AON', 'BK', 'MCO', 'USB', 'FISV',
             'PYPL', 'TRV', 'APO', 'TFC', 'ALL', 'AFL', 'MET', 'AMP', 'AIG', 'MSCI',
             'NDAQ', 'HIG', 'PRU', 'FIS', 'ACGL', 'WTW', 'STT', 'MTB', 'IBKR', 'RJF',
             'FITB', 'BRO', 'SYF', 'CINF', 'NTRS', 'HBAN', 'CBOE', 'RF', 'WRB', 'CFG',
@@ -163,7 +163,7 @@ def main():
             'ADSK', 'TEL', 'GLW', 'NXPI', 'FTNT', 'STX', 'ROP', 'DDOG', 'WDAY', 'DELL',
             'WDC', 'MPWR', 'FICO', 'MCHP', 'HPE', 'CTSH', 'KEYS', 'SMCI', 'TDY', 'HPQ',
             'PTC', 'FSLR', 'VRSN', 'JBL', 'NTAP', 'TYL', 'TER', 'CDW', 'ON', 'GDDY',
-            'FFIV', 'TRMB', 'IT', 'GEN', 'ZBRA', 'SWKS', 'AKAM', 'EPAM', 'ANSS'
+            'FFIV', 'TRMB', 'IT', 'GEN', 'ZBRA', 'SWKS', 'AKAM', 'EPAM'
         ],
         'XLP': [  # 必需消費品 (37支股票)
             'WMT', 'COST', 'PG', 'KO', 'PM', 'MDLZ', 'PEP', 'MO', 'CL', 'MNST',
