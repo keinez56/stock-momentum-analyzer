@@ -62,6 +62,15 @@ def calculate_us_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
     except:
         indicators['higher_high'] = False
 
+    # 收盤價創歷史新高：最新收盤價是否為資料期間內的最高價
+    try:
+        current_close = float(df['Close'].iloc[-1])
+        historical_max_close = float(df['Close'].max())
+        # 允許小誤差（0.01%）來判斷是否相等
+        indicators['all_time_high'] = bool(current_close >= historical_max_close * 0.9999)
+    except:
+        indicators['all_time_high'] = False
+
     # 成交量變化 - 美股成交量計算
     try:
         # 確保有足夠的數據
@@ -336,6 +345,7 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                         'Week_return': indicators.get('week_return', np.nan),
                         'Month_return': indicators.get('month_return', np.nan),
                         'HigherHigh': indicators.get('higher_high', False),
+                        'All_Time_High': indicators.get('all_time_high', False),
                         'VolumnChange': indicators.get('volume_change', np.nan),
                         'VC_30': indicators.get('vc_30', False),
                         'RSI_5': indicators.get('rsi5', np.nan),

@@ -180,6 +180,15 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
     except:
         indicators['higher_high'] = False
 
+    # 收盤價創歷史新高：最新收盤價是否為資料期間內的最高價
+    try:
+        current_close = float(df['Close'].iloc[-1])
+        historical_max_close = float(df['Close'].max())
+        # 允許小誤差（0.01%）來判斷是否相等
+        indicators['all_time_high'] = bool(current_close >= historical_max_close * 0.9999)
+    except:
+        indicators['all_time_high'] = False
+
     # 成交量變化 - 重寫計算邏輯
     try:
         # 確保有足夠的數據
@@ -570,6 +579,7 @@ def process_stock_data(progress_bar, status_text):
                         'Week_return': indicators.get('week_return', np.nan),
                         'Month_return': indicators.get('month_return', np.nan),
                         'HigherHigh': indicators.get('higher_high', False),
+                        'All_Time_High': indicators.get('all_time_high', False),
                         'VolumnChange': indicators.get('volume_change', np.nan),
                         'VC_30': indicators.get('vc_30', False),
                         'RSI_5': indicators.get('rsi5', np.nan),
@@ -1050,7 +1060,7 @@ def main():
                         """, unsafe_allow_html=True)
 
                         # 顯示統計資訊
-                        col1, col2, col3, col4, col5, col6 = st.columns(6)
+                        col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
                         with col1:
                             st.metric("處理股票數", len(dframe))
                         with col2:
@@ -1086,6 +1096,16 @@ def main():
                                 short_uptrend = 0
                             st.metric("短線上漲", short_uptrend)
                         with col6:
+                            try:
+                                # 計算收盤創歷史新高的數量
+                                if 'All_Time_High' in dframe.columns and not dframe.empty:
+                                    all_time_high_count = sum(dframe['All_Time_High'] == True)
+                                else:
+                                    all_time_high_count = 0
+                            except:
+                                all_time_high_count = 0
+                            st.metric("收盤創新高", all_time_high_count)
+                        with col7:
                             try:
                                 # 計算營收創新高的數量
                                 if 'Revenue_New_High' in dframe.columns and not dframe.empty:
@@ -1161,7 +1181,7 @@ def main():
                     """, unsafe_allow_html=True)
 
                     # 顯示統計資訊
-                    col1, col2, col3, col4, col5 = st.columns(5)
+                    col1, col2, col3, col4, col5, col6 = st.columns(6)
                     with col1:
                         st.metric("處理股票數", len(dframe))
                     with col2:
@@ -1192,6 +1212,16 @@ def main():
                         except:
                             short_uptrend = 0
                         st.metric("短線上漲", short_uptrend)
+                    with col6:
+                        try:
+                            # 計算收盤創歷史新高的數量
+                            if 'All_Time_High' in dframe.columns and not dframe.empty:
+                                all_time_high_count = sum(dframe['All_Time_High'] == True)
+                            else:
+                                all_time_high_count = 0
+                        except:
+                            all_time_high_count = 0
+                        st.metric("收盤創新高", all_time_high_count)
 
                     # 提供下載按鈕
                     with open(filename, "rb") as file:
@@ -1433,7 +1463,7 @@ def main():
         st.markdown("### 📋 欄位說明對照表")
 
         field_data = {
-            "英文欄位": ["Ticker", "Close", "Daily_return", "Week_return", "Month_return", "HigherHigh",
+            "英文欄位": ["Ticker", "Close", "Daily_return", "Week_return", "Month_return", "HigherHigh", "All_Time_High",
                        "VolumeChange", "VC_30", "RSI_5", "RSI_14", "MACD", "MACDsignal", "MACDhist",
                        "macdhist_signal", "MA5", "MA20", "MA60", "Crossover", "BBand", "BBand_middleband",
                        "BBand_crossover", "willr_D", "willr_D1", "K5", "D5", "Volume_5MA", "Volume_above_5MA",
@@ -1441,7 +1471,7 @@ def main():
                        "Short_Downtrend_Signal", "Institutional_Selling", "Foreign_Net", "Trust_Net",
                        "Dealer_Net", "Total_Net", "Revenue_Month", "Revenue_Billion", "Revenue_New_High",
                        "Composite_Momentum_S", "Composite_Momentum_L"],
-            "中文名稱": ["股票代碼", "收盤價", "日報酬率", "週報酬率", "月報酬率", "創新高",
+            "中文名稱": ["股票代碼", "收盤價", "日報酬率", "週報酬率", "月報酬率", "創新高(5日)", "收盤創歷史新高",
                        "成交量變化", "量能超標30%", "RSI(5)", "RSI(14)", "MACD指標", "MACD訊號線", "MACD柱狀圖",
                        "MACD柱狀轉折", "5日均線", "20日均線", "60日均線", "均線黃金交叉", "布林通道擴張", "布林中軌上升",
                        "布林下軌突破", "威廉指標%D", "威廉指標%D前值", "KD K值(5)", "KD D值(5)", "5日成交量均線", "量大於5日均量",
@@ -1449,7 +1479,7 @@ def main():
                        "短期下跌訊號", "機構出貨指標", "外資淨買賣", "投信淨買賣",
                        "自營商淨買賣", "三大法人合計", "營收月份", "當月營收(億)", "營收創新高",
                        "短期綜合動能", "長期綜合動能"],
-            "簡要說明": ["個股代號", "當日收盤價格", "當日漲跌幅", "近一週(5日)漲跌幅", "近一個月(22日)漲跌幅", "近5日是否創一年新高",
+            "簡要說明": ["個股代號", "當日收盤價格", "當日漲跌幅", "近一週(5日)漲跌幅", "近一個月(22日)漲跌幅", "近5日是否創一年新高", "收盤價是否創一年內歷史新高",
                        "當日量相對20日均量變化%", "成交量超過20日均量30%", "5日相對強弱指標", "14日相對強弱指標", "動能趨勢指標(12,26,9)", "MACD的9日平滑線", "MACD與訊號線差值",
                        "柱狀圖由負轉正訊號", "短期移動平均", "中短期移動平均", "中期移動平均", "MA5向上穿越MA20", "通道連續2日擴張", "中軌(20MA)上升中",
                        "價格向上突破下軌", "超買超賣指標(14日)", "前一期威廉%D值", "隨機指標K值(5,3,3)", "隨機指標D值(5,3,3)", "5日成交量移動平均", "目前量高於5日均量",
