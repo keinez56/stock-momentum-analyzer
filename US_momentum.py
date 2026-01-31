@@ -64,6 +64,29 @@ def calculate_us_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
 
     # 注意：all_time_high 在 process_us_stock_data 中單獨計算（需要10年資料）
 
+    # 52週最高價、最低價及相對位置
+    try:
+        current_close = float(df['Close'].iloc[-1])
+        week_52_high = float(df['High'].max())  # 52週最高價
+        week_52_low = float(df['Low'].min())    # 52週最低價
+        indicators['week_52_high'] = week_52_high
+        indicators['week_52_low'] = week_52_low
+        # 距離52週最高價差幾% (負數表示低於最高價)
+        if week_52_high > 0:
+            indicators['pct_from_52_high'] = round(((current_close - week_52_high) / week_52_high) * 100, 2)
+        else:
+            indicators['pct_from_52_high'] = 0.0
+        # 距離52週最低價高幾% (正數表示高於最低價)
+        if week_52_low > 0:
+            indicators['pct_from_52_low'] = round(((current_close - week_52_low) / week_52_low) * 100, 2)
+        else:
+            indicators['pct_from_52_low'] = 0.0
+    except:
+        indicators['week_52_high'] = np.nan
+        indicators['week_52_low'] = np.nan
+        indicators['pct_from_52_high'] = np.nan
+        indicators['pct_from_52_low'] = np.nan
+
     # 成交量變化 - 美股成交量計算
     try:
         # 確保有足夠的數據
@@ -352,6 +375,10 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                         'Month_return': indicators.get('month_return', np.nan),
                         'HigherHigh': indicators.get('higher_high', False),
                         'All_Time_High': indicators.get('all_time_high', False),
+                        'Week_52_High': indicators.get('week_52_high', np.nan),
+                        'Week_52_Low': indicators.get('week_52_low', np.nan),
+                        'Pct_From_52_High': indicators.get('pct_from_52_high', np.nan),
+                        'Pct_From_52_Low': indicators.get('pct_from_52_low', np.nan),
                         'VolumnChange': indicators.get('volume_change', np.nan),
                         'VC_30': indicators.get('vc_30', False),
                         'RSI_5': indicators.get('rsi5', np.nan),
