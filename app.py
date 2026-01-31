@@ -20,6 +20,7 @@ try:
     import us_trend_scanner
     import us_market_scanner
     import institutional_data
+    import revenue_scraper
 
     process_us_stock_data = US_momentum.process_us_stock_data
     calculate_us_technical_indicators = US_momentum.calculate_us_technical_indicators
@@ -27,6 +28,7 @@ try:
     us_market_scanner_main = us_market_scanner.main
     get_institutional_trading = institutional_data.get_institutional_trading
     get_institutional_trading_batch = institutional_data.get_institutional_trading_batch
+    get_revenue_batch = revenue_scraper.get_revenue_batch
 
 except ImportError as e:
     st.error(f"模組導入錯誤: {e}")
@@ -388,7 +390,6 @@ def prepare_stock_codes():
             6770: "力積電",
             3260: "威剛科技",
             2330: "台灣積體電路製造",
-            3595: "銓寶工業",
             6239: "力成科技",
             7769: "宏矽科技",
             8996: "高力熱處理",
@@ -505,6 +506,19 @@ def process_stock_data(progress_bar, status_text):
                 stock_end_date = today
                 start_day = today - timedelta(365)
 
+        # 批量下載營收資料
+        revenue_batch_data = {}
+        if taiwan_stock_codes:
+            try:
+                status_text.text("正在下載營收資料...")
+                progress_bar.progress(0.1)
+                revenue_batch_data = get_revenue_batch(taiwan_stock_codes)
+                if revenue_batch_data:
+                    status_text.text(f"成功下載 {len(revenue_batch_data)} 檔股票的營收資料")
+            except Exception as e:
+                st.warning(f"下載營收資料失敗: {e}")
+                revenue_batch_data = {}
+
         for i, ticker in enumerate(tickers):
             # 更新進度條
             progress = (i + 1) / total_tickers
@@ -538,6 +552,16 @@ def process_stock_data(progress_bar, status_text):
                         }
 
                 if indicators:
+                    # 獲取營收資料
+                    revenue_data = {'latest_month': '', 'latest_revenue_billion': np.nan, 'is_new_high': False}
+                    if clean_code in revenue_batch_data:
+                        rev = revenue_batch_data[clean_code]
+                        revenue_data = {
+                            'latest_month': rev.get('latest_month', ''),
+                            'latest_revenue_billion': rev.get('latest_revenue_billion', np.nan),
+                            'is_new_high': rev.get('is_new_high', False)
+                        }
+
                     result = {
                         'Ticker': ticker,
                         'Name': names.iloc[i] if i < len(names) else '',
@@ -577,7 +601,11 @@ def process_stock_data(progress_bar, status_text):
                         'Foreign_Net': institutional_data.get('foreign_net', 0),
                         'Trust_Net': institutional_data.get('trust_net', 0),
                         'Dealer_Net': institutional_data.get('dealer_net', 0),
-                        'Total_Net': institutional_data.get('total_net', 0)
+                        'Total_Net': institutional_data.get('total_net', 0),
+                        # 新增營收欄位
+                        'Revenue_Month': revenue_data.get('latest_month', ''),
+                        'Revenue_Billion': revenue_data.get('latest_revenue_billion', np.nan),
+                        'Revenue_New_High': revenue_data.get('is_new_high', False)
                     }
                     results.append(result)
 
@@ -1022,7 +1050,7 @@ def main():
                         """, unsafe_allow_html=True)
 
                         # 顯示統計資訊
-                        col1, col2, col3, col4, col5 = st.columns(5)
+                        col1, col2, col3, col4, col5, col6 = st.columns(6)
                         with col1:
                             st.metric("處理股票數", len(dframe))
                         with col2:
@@ -1057,6 +1085,16 @@ def main():
                             except:
                                 short_uptrend = 0
                             st.metric("短線上漲", short_uptrend)
+                        with col6:
+                            try:
+                                # 計算營收創新高的數量
+                                if 'Revenue_New_High' in dframe.columns and not dframe.empty:
+                                    revenue_new_high = sum(dframe['Revenue_New_High'] == True)
+                                else:
+                                    revenue_new_high = 0
+                            except:
+                                revenue_new_high = 0
+                            st.metric("營收創新高", revenue_new_high)
 
                         # 提供下載按鈕
                         with open(filename, "rb") as file:
@@ -1401,21 +1439,24 @@ def main():
                        "BBand_crossover", "willr_D", "willr_D1", "K5", "D5", "Volume_5MA", "Volume_above_5MA",
                        "Volume_20MA", "Volume_below_20MA", "Decline_3Days", "Short_Uptrend_Momentum",
                        "Short_Downtrend_Signal", "Institutional_Selling", "Foreign_Net", "Trust_Net",
-                       "Dealer_Net", "Total_Net", "Composite_Momentum_S", "Composite_Momentum_L"],
+                       "Dealer_Net", "Total_Net", "Revenue_Month", "Revenue_Billion", "Revenue_New_High",
+                       "Composite_Momentum_S", "Composite_Momentum_L"],
             "中文名稱": ["股票代碼", "收盤價", "日報酬率", "週報酬率", "月報酬率", "創新高",
                        "成交量變化", "量能超標30%", "RSI(5)", "RSI(14)", "MACD指標", "MACD訊號線", "MACD柱狀圖",
                        "MACD柱狀轉折", "5日均線", "20日均線", "60日均線", "均線黃金交叉", "布林通道擴張", "布林中軌上升",
                        "布林下軌突破", "威廉指標%D", "威廉指標%D前值", "KD K值(5)", "KD D值(5)", "5日成交量均線", "量大於5日均量",
                        "20日成交量均線", "量低於20MA", "3日累積跌幅", "短期上升動能",
                        "短期下跌訊號", "機構出貨指標", "外資淨買賣", "投信淨買賣",
-                       "自營商淨買賣", "三大法人合計", "短期綜合動能", "長期綜合動能"],
+                       "自營商淨買賣", "三大法人合計", "營收月份", "當月營收(億)", "營收創新高",
+                       "短期綜合動能", "長期綜合動能"],
             "簡要說明": ["個股代號", "當日收盤價格", "當日漲跌幅", "近一週(5日)漲跌幅", "近一個月(22日)漲跌幅", "近5日是否創一年新高",
                        "當日量相對20日均量變化%", "成交量超過20日均量30%", "5日相對強弱指標", "14日相對強弱指標", "動能趨勢指標(12,26,9)", "MACD的9日平滑線", "MACD與訊號線差值",
                        "柱狀圖由負轉正訊號", "短期移動平均", "中短期移動平均", "中期移動平均", "MA5向上穿越MA20", "通道連續2日擴張", "中軌(20MA)上升中",
                        "價格向上突破下軌", "超買超賣指標(14日)", "前一期威廉%D值", "隨機指標K值(5,3,3)", "隨機指標D值(5,3,3)", "5日成交量移動平均", "目前量高於5日均量",
                        "近20日平均成交量", "目前量低於20日均量", "近3日累積下跌幅度%", "短線上漲力道(5條件)",
                        "短線轉弱訊號(4條件)", "大戶減碼訊號(3條件)", "外資買賣超(僅台股)", "投信買賣超(僅台股)",
-                       "自營商買賣超(僅台股)", "法人總淨買賣(僅台股)", "短期多指標綜合動能", "中長期多指標綜合動能"]
+                       "自營商買賣超(僅台股)", "法人總淨買賣(僅台股)", "最新公布營收的月份(僅台股)", "當月營收金額(億元)(僅台股)", "當月營收是否創歷史新高(僅台股)",
+                       "短期多指標綜合動能", "中長期多指標綜合動能"]
         }
 
         field_df = pd.DataFrame(field_data)
