@@ -145,6 +145,24 @@ def calculate_us_technical_indicators(df: pd.DataFrame) -> Dict[str, float]:
     except:
         indicators['month_return'] = 0.0
 
+    # YTD 報酬率 (年初至今報酬率)
+    try:
+        current_year = date.today().year
+        # 找出今年第一個交易日的收盤價
+        df_ytd = df[df.index >= f'{current_year}-01-01']
+        if len(df_ytd) >= 2:
+            first_close = float(df_ytd['Close'].iloc[0])
+            current_close = float(df_ytd['Close'].iloc[-1])
+            if first_close > 0:
+                ytd_ret = ((current_close - first_close) / first_close) * 100
+                indicators['ytd_return'] = round(ytd_ret, 2)
+            else:
+                indicators['ytd_return'] = 0.0
+        else:
+            indicators['ytd_return'] = 0.0
+    except:
+        indicators['ytd_return'] = 0.0
+
     # RSI 指標
     rsi5 = talib.RSI(close_array, timeperiod=5)
     rsi14 = talib.RSI(close_array, timeperiod=14)
@@ -373,6 +391,7 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                         'Daily_return': indicators.get('day_return', np.nan),
                         'Week_return': indicators.get('week_return', np.nan),
                         'Month_return': indicators.get('month_return', np.nan),
+                        'YTD_Return': indicators.get('ytd_return', np.nan),
                         'HigherHigh': indicators.get('higher_high', False),
                         'All_Time_High': indicators.get('all_time_high', False),
                         'Week_52_High': indicators.get('week_52_high', np.nan),
