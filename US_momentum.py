@@ -384,6 +384,50 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                 except:
                     indicators['all_time_high'] = False
 
+                # 獲取基本面資料 (EPS, P/E, ROE) 和營收資料
+                fundamental_data = {'eps': np.nan, 'pe': np.nan, 'roe': np.nan}
+                revenue_data = {'latest_quarter': '', 'latest_revenue_billion': np.nan, 'is_new_high': False}
+                try:
+                    ticker_obj = yf.Ticker(validated_ticker)
+                    stock_info = ticker_obj.info
+                    if stock_info:
+                        fundamental_data['eps'] = stock_info.get('trailingEps', np.nan)
+                        fundamental_data['pe'] = stock_info.get('trailingPE', np.nan)
+                        roe_value = stock_info.get('returnOnEquity', np.nan)
+                        if roe_value is not None and not np.isnan(roe_value):
+                            fundamental_data['roe'] = round(roe_value * 100, 2)  # 轉為百分比
+
+                    # 獲取季度營收資料
+                    quarterly_financials = ticker_obj.quarterly_financials
+                    if quarterly_financials is not None and not quarterly_financials.empty:
+                        # 找營收行 (Total Revenue)
+                        revenue_row = None
+                        for idx in quarterly_financials.index:
+                            if 'Total Revenue' in str(idx) or 'Revenue' == str(idx):
+                                revenue_row = idx
+                                break
+
+                        if revenue_row is not None:
+                            revenues = quarterly_financials.loc[revenue_row].dropna()
+                            if len(revenues) > 0:
+                                # 最新季度營收
+                                latest_revenue = float(revenues.iloc[0])
+                                latest_quarter = revenues.index[0].strftime('%Y/Q%q').replace('Q1', 'Q1').replace('Q2', 'Q2').replace('Q3', 'Q3').replace('Q4', 'Q4')
+                                # 簡化季度顯示
+                                quarter_month = revenues.index[0].month
+                                quarter_num = (quarter_month - 1) // 3 + 1
+                                latest_quarter = f"{revenues.index[0].year}/Q{quarter_num}"
+
+                                revenue_data['latest_quarter'] = latest_quarter
+                                revenue_data['latest_revenue_billion'] = round(latest_revenue / 1000000000, 2)  # 轉為十億美元
+
+                                # 判斷是否創新高（與歷史季度比較）
+                                if len(revenues) > 1:
+                                    historical_max = float(revenues.iloc[1:].max())
+                                    revenue_data['is_new_high'] = latest_revenue > historical_max
+                except Exception as e:
+                    print(f"獲取 {validated_ticker} 基本面資料失敗: {e}")
+
                 if indicators:
                     result = {
                         'Ticker': validated_ticker,
@@ -424,7 +468,15 @@ def process_us_stock_data(input_file: str = None) -> pd.DataFrame:
                         'Decline_3Days': indicators.get('decline_3days', 0),
                         'Short_Uptrend_Momentum': indicators.get('short_uptrend_momentum', False),
                         'Short_Downtrend_Signal': indicators.get('short_downtrend_signal', False),
-                        'Institutional_Selling': indicators.get('institutional_selling', False)
+                        'Institutional_Selling': indicators.get('institutional_selling', False),
+                        # 新增營收欄位
+                        'Revenue_Quarter': revenue_data.get('latest_quarter', ''),
+                        'Revenue_Billion': revenue_data.get('latest_revenue_billion', np.nan),
+                        'Revenue_New_High': revenue_data.get('is_new_high', False),
+                        # 新增基本面欄位
+                        'EPS': fundamental_data.get('eps', np.nan),
+                        'PE': fundamental_data.get('pe', np.nan),
+                        'ROE': fundamental_data.get('roe', np.nan)
                     }
                     results.append(result)
 

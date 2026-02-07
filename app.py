@@ -29,6 +29,7 @@ try:
     get_institutional_trading = institutional_data.get_institutional_trading
     get_institutional_trading_batch = institutional_data.get_institutional_trading_batch
     get_revenue_batch = revenue_scraper.get_revenue_batch
+    get_revenue_finmind = revenue_scraper.get_revenue_finmind
 
 except ImportError as e:
     st.error(f"模組導入錯誤: {e}")
@@ -593,6 +594,19 @@ def process_stock_data(progress_bar, status_text):
                 except:
                     indicators['all_time_high'] = False
 
+                # 獲取基本面資料 (EPS, P/E, ROE)
+                fundamental_data = {'eps': np.nan, 'pe': np.nan, 'roe': np.nan}
+                try:
+                    stock_info = yf.Ticker(ticker).info
+                    if stock_info:
+                        fundamental_data['eps'] = stock_info.get('trailingEps', np.nan)
+                        fundamental_data['pe'] = stock_info.get('trailingPE', np.nan)
+                        roe_value = stock_info.get('returnOnEquity', np.nan)
+                        if roe_value is not None and not np.isnan(roe_value):
+                            fundamental_data['roe'] = round(roe_value * 100, 2)  # 轉為百分比
+                except Exception as e:
+                    print(f"獲取 {ticker} 基本面資料失敗: {e}")
+
                 # 獲取三大法人買賣超資料（從批量下載的資料中取得）
                 clean_code = ticker.replace('.TW', '').replace('.TWO', '')
                 institutional_data = {'foreign_net': 0, 'trust_net': 0, 'dealer_net': 0, 'total_net': 0}
@@ -668,7 +682,11 @@ def process_stock_data(progress_bar, status_text):
                         # 新增營收欄位
                         'Revenue_Month': revenue_data.get('latest_month', ''),
                         'Revenue_Billion': revenue_data.get('latest_revenue_billion', np.nan),
-                        'Revenue_New_High': revenue_data.get('is_new_high', False)
+                        'Revenue_New_High': revenue_data.get('is_new_high', False),
+                        # 新增基本面欄位
+                        'EPS': fundamental_data.get('eps', np.nan),
+                        'PE': fundamental_data.get('pe', np.nan),
+                        'ROE': fundamental_data.get('roe', np.nan)
                     }
                     results.append(result)
 
@@ -935,6 +953,58 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                 # 計算技術指標
                 indicators = calculate_technical_indicators(df)
 
+                # 獲取基本面資料 (EPS, P/E, ROE) 和營收資料
+                fundamental_data = {'eps': np.nan, 'pe': np.nan, 'roe': np.nan}
+                revenue_data = {'latest_period': '', 'latest_revenue_billion': np.nan, 'is_new_high': False}
+                try:
+                    ticker_obj = yf.Ticker(ticker)
+                    stock_info = ticker_obj.info
+                    if stock_info:
+                        fundamental_data['eps'] = stock_info.get('trailingEps', np.nan)
+                        fundamental_data['pe'] = stock_info.get('trailingPE', np.nan)
+                        roe_value = stock_info.get('returnOnEquity', np.nan)
+                        if roe_value is not None and not np.isnan(roe_value):
+                            fundamental_data['roe'] = round(roe_value * 100, 2)  # 轉為百分比
+
+                    # 判斷是台股還是美股來獲取營收資料
+                    is_taiwan_stock = '.TW' in ticker or '.TWO' in ticker
+                    if is_taiwan_stock:
+                        # 台股使用 FinMind API 獲取月營收
+                        clean_code = ticker.replace('.TW', '').replace('.TWO', '')
+                        try:
+                            rev_result = get_revenue_finmind(clean_code)
+                            if rev_result:
+                                revenue_data = {
+                                    'latest_period': rev_result.get('latest_month', ''),
+                                    'latest_revenue_billion': rev_result.get('latest_revenue_billion', np.nan),
+                                    'is_new_high': rev_result.get('is_new_high', False)
+                                }
+                        except Exception as e:
+                            print(f"獲取 {ticker} 台股營收資料失敗: {e}")
+                    else:
+                        # 美股使用 yfinance 獲取季度營收
+                        quarterly_financials = ticker_obj.quarterly_financials
+                        if quarterly_financials is not None and not quarterly_financials.empty:
+                            revenue_row = None
+                            for idx in quarterly_financials.index:
+                                if 'Total Revenue' in str(idx) or 'Revenue' == str(idx):
+                                    revenue_row = idx
+                                    break
+                            if revenue_row is not None:
+                                revenues = quarterly_financials.loc[revenue_row].dropna()
+                                if len(revenues) > 0:
+                                    latest_revenue = float(revenues.iloc[0])
+                                    quarter_month = revenues.index[0].month
+                                    quarter_num = (quarter_month - 1) // 3 + 1
+                                    latest_quarter = f"{revenues.index[0].year}/Q{quarter_num}"
+                                    revenue_data['latest_period'] = latest_quarter
+                                    revenue_data['latest_revenue_billion'] = round(latest_revenue / 1000000000, 2)
+                                    if len(revenues) > 1:
+                                        historical_max = float(revenues.iloc[1:].max())
+                                        revenue_data['is_new_high'] = latest_revenue > historical_max
+                except Exception as e:
+                    print(f"獲取 {ticker} 基本面資料失敗: {e}")
+
                 # 獲取三大法人買賣超資料（從批量下載的資料中取得）
                 institutional_data = {'foreign_net': 0, 'trust_net': 0, 'dealer_net': 0, 'total_net': 0}
                 if '.TW' in ticker or '.TWO' in ticker:
@@ -1001,7 +1071,15 @@ def process_custom_file(uploaded_file, progress_bar, status_text):
                         'Foreign_Net': institutional_data.get('foreign_net', 0),
                         'Trust_Net': institutional_data.get('trust_net', 0),
                         'Dealer_Net': institutional_data.get('dealer_net', 0),
-                        'Total_Net': institutional_data.get('total_net', 0)
+                        'Total_Net': institutional_data.get('total_net', 0),
+                        # 新增營收欄位
+                        'Revenue_Period': revenue_data.get('latest_period', ''),
+                        'Revenue_Billion': revenue_data.get('latest_revenue_billion', np.nan),
+                        'Revenue_New_High': revenue_data.get('is_new_high', False),
+                        # 新增基本面欄位
+                        'EPS': fundamental_data.get('eps', np.nan),
+                        'PE': fundamental_data.get('pe', np.nan),
+                        'ROE': fundamental_data.get('roe', np.nan)
                     }
                     results.append(result)
 
@@ -1525,6 +1603,7 @@ def main():
                        "Volume_20MA", "Volume_below_20MA", "Decline_3Days", "Short_Uptrend_Momentum",
                        "Short_Downtrend_Signal", "Institutional_Selling", "Foreign_Net", "Trust_Net",
                        "Dealer_Net", "Total_Net", "Revenue_Month", "Revenue_Billion", "Revenue_New_High",
+                       "EPS", "PE", "ROE",
                        "Composite_Momentum_S", "Composite_Momentum_L"],
             "中文名稱": ["股票代碼", "收盤價", "日報酬率", "週報酬率", "月報酬率", "YTD報酬率", "創新高(5日)", "收盤創歷史新高",
                        "52週最高價", "52週最低價", "距52週高點%", "距52週低點%",
@@ -1534,6 +1613,7 @@ def main():
                        "20日成交量均線", "量低於20MA", "3日累積跌幅", "短期上升動能",
                        "短期下跌訊號", "機構出貨指標", "外資淨買賣", "投信淨買賣",
                        "自營商淨買賣", "三大法人合計", "營收月份", "當月營收(億)", "營收創新高",
+                       "每股盈餘", "本益比", "股東權益報酬率",
                        "短期綜合動能", "長期綜合動能"],
             "簡要說明": ["個股代號", "當日收盤價格", "當日漲跌幅", "近一週(5日)漲跌幅", "近一個月(22日)漲跌幅", "年初至今報酬率", "近5日是否創一年新高", "收盤價是否創十年內歷史新高",
                        "52週內最高價格", "52週內最低價格", "收盤價距離52週最高點差距%", "收盤價高於52週最低點幾%",
@@ -1543,6 +1623,7 @@ def main():
                        "近20日平均成交量", "目前量低於20日均量", "近3日累積下跌幅度%", "短線上漲力道(5條件)",
                        "短線轉弱訊號(4條件)", "大戶減碼訊號(3條件)", "外資買賣超(僅台股)", "投信買賣超(僅台股)",
                        "自營商買賣超(僅台股)", "法人總淨買賣(僅台股)", "最新公布營收的月份(僅台股)", "當月營收金額(億元)(僅台股)", "當月營收是否創歷史新高(僅台股)",
+                       "每股盈餘(過去12個月)", "本益比(價格/EPS)", "股東權益報酬率(%)",
                        "短期多指標綜合動能", "中長期多指標綜合動能"]
         }
 
